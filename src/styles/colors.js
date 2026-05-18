@@ -1,0 +1,15 @@
+export const COLORS = {
+  green: "#2E7D32",
+  greenLight: "#4CAF50",
+  greenBg: "#E8F5E9",
+  greenMuted: "#A5D6A7",
+  orange: "#F57C00",
+  orangeLight: "#FFE0B2",
+  gray: "#616161",
+  grayLight: "#F5F5F5",
+  grayBorder: "#E0E0E0",
+  white: "#FFFFFF",
+  text: "#212121",
+  textSec: "#757575",
+  sidebarBg: "#1B5E20",
+};
