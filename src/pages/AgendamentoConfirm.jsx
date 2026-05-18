@@ -3,6 +3,7 @@ import PageHeader from "../components/PageHeader";
 import InputField from "../components/InputField";
 import { residuosTipos } from "../data/mockData";
 import { COLORS } from "../styles/colors";
+import BotaoVoltar from "../components/BotaoVoltar";
 function AgendamentoConfirm({ slot, onBack, onConfirm }) {
   const [selecionados, setSelecionados] = useState([]);
 
