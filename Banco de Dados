@@ -1,0 +1,115 @@
+CREATE DATABASE ewaster_dev;
+
+CREATE TYPE tipo_usuario AS ENUM ('ADMIN', 'USUARIO', 'OPERADOR');
+CREATE TYPE status_agendamento AS ENUM ('PENDENTE', 'CONFIRMADO', 'CANCELADO', 'CONCLUIDO');
+
+-- =========================
+-- USUARIO
+-- =========================
+CREATE TABLE USUARIO (
+    id SERIAL PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    senha VARCHAR(255) NOT NULL,
+    tipo tipo_usuario NOT NULL,
+    pontuacao_total INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =========================
+-- SLOT_COLETA
+-- =========================
+CREATE TABLE SLOT_COLETA (
+    id SERIAL PRIMARY KEY,
+    data DATE NOT NULL,
+    horario_inicio TIME NOT NULL,
+    horario_fim TIME NOT NULL,
+    capacidade_maxima INT NOT NULL,
+    ativo BOOLEAN DEFAULT TRUE
+);
+
+-- =========================
+-- TIPO_RESIDUO
+-- =========================
+CREATE TABLE TIPO_RESIDUO (
+    id SERIAL PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    pontuacao_base INT NOT NULL
+);
+
+-- =========================
+-- CONQUISTA
+-- =========================
+CREATE TABLE CONQUISTA (
+    id SERIAL PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    tipo VARCHAR(50) NOT NULL,
+    valor INT NOT NULL
+);
+
+-- =========================
+-- CAMPANHA
+-- =========================
+CREATE TABLE CAMPANHA (
+    id SERIAL PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    data_inicio DATE NOT NULL,
+    data_fim DATE NOT NULL
+);
+
+-- =========================
+-- AGENDAMENTO
+-- =========================
+CREATE TABLE AGENDAMENTO (
+    id SERIAL PRIMARY KEY,
+    usuario_id INT NOT NULL,
+    slot_id INT NOT NULL,
+    status status_agendamento NOT NULL,
+
+    FOREIGN KEY (usuario_id) REFERENCES USUARIO(id) ON DELETE CASCADE,
+    FOREIGN KEY (slot_id) REFERENCES SLOT_COLETA(id) ON DELETE RESTRICT
+);
+
+-- =========================
+-- DESCARTE
+-- =========================
+CREATE TABLE DESCARTE (
+    id SERIAL PRIMARY KEY,
+    usuario_id INT NOT NULL,
+    tipo_residuo_id INT NOT NULL,
+    agendamento_id INT,
+    campanha_id INT,
+    data_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (usuario_id) REFERENCES USUARIO(id) ON DELETE CASCADE,
+    FOREIGN KEY (tipo_residuo_id) REFERENCES TIPO_RESIDUO(id) ON DELETE RESTRICT,
+    FOREIGN KEY (agendamento_id) REFERENCES AGENDAMENTO(id) ON DELETE SET NULL,
+    FOREIGN KEY (campanha_id) REFERENCES CAMPANHA(id) ON DELETE SET NULL
+);
+
+-- =========================
+-- USUARIO_CONQUISTA
+-- =========================
+CREATE TABLE USUARIO_CONQUISTA (
+    usuario_id INT NOT NULL,
+    conquista_id INT NOT NULL,
+    data_desbloqueio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (usuario_id, conquista_id),
+
+    FOREIGN KEY (usuario_id) REFERENCES USUARIO(id) ON DELETE CASCADE,
+    FOREIGN KEY (conquista_id) REFERENCES CONQUISTA(id) ON DELETE CASCADE
+);
+
+-- =========================
+-- USUARIO_CAMPANHA
+-- =========================
+CREATE TABLE USUARIO_CAMPANHA (
+    usuario_id INT NOT NULL,
+    campanha_id INT NOT NULL,
+    data_inscricao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (usuario_id, campanha_id),
+
+    FOREIGN KEY (usuario_id) REFERENCES USUARIO(id) ON DELETE CASCADE,
+    FOREIGN KEY (campanha_id) REFERENCES CAMPANHA(id) ON DELETE CASCADE
+);
