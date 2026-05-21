@@ -1,12 +1,36 @@
+import { useEffect, useState } from "react";
 import PageHeader from "../components/PageHeader";
+import { verificarApi } from "../api/healthApi";
 import { COLORS } from "../styles/colors";
 function HomeScreen({ onNavigate, usuario, totalPontos, totalAgendamentos, totalHistorico }) {
+  const [apiStatus, setApiStatus] = useState("Verificando API...");
+
+  useEffect(() => {
+    let ativo = true;
+
+    verificarApi()
+      .then((resposta) => {
+        if (ativo) setApiStatus(resposta || "API online");
+      })
+      .catch(() => {
+        if (ativo) setApiStatus("API indisponivel");
+      });
+
+    return () => {
+      ativo = false;
+    };
+  }, []);
+
   return (
     <div>
       <PageHeader
         title={`Bem-vindo, ${usuario}`}
         subtitle="Gerencie suas coletas de residuos eletronicos."
       />
+      <div style={{ display: "inline-flex", alignItems: "center", gap: 8, border: `1px solid ${COLORS.grayBorder}`, borderRadius: 999, padding: "6px 12px", background: COLORS.white, color: apiStatus === "API indisponivel" ? "#D32F2F" : COLORS.green, fontSize: 12, fontWeight: 600, marginBottom: 20 }}>
+        <span style={{ width: 8, height: 8, borderRadius: "50%", background: apiStatus === "API indisponivel" ? "#D32F2F" : COLORS.green }} />
+        {apiStatus}
+      </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16, marginBottom: 32, maxWidth: 520 }}>
         <div style={{ background: COLORS.white, border: `1px solid ${COLORS.grayBorder}`, borderRadius: 12, padding: "20px 24px" }}>
           <div style={{ fontSize: 13, color: COLORS.textSec, marginBottom: 6 }}>Seus pontos</div>
