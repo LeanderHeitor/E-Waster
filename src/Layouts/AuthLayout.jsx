@@ -43,12 +43,42 @@ function AuthLayout({ children }) {
           ))}
         </div>
       </div>
-      <div style={{
-        flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
-        background: COLORS.grayLight, padding: "40px",
-      }}>
-        <div style={{ width: "100%", maxWidth: 400 }}>{children}</div>
-      </div>
+      <div
+  style={{
+    flex: 1,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: COLORS.grayLight,
+    padding: "40px",
+    position: "relative",
+    overflow: "hidden",
+  }}
+>
+  <div
+    style={{
+      position: "absolute",
+      inset: 0,
+      backgroundImage: 'url("/brick-wall.jpg")',
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      opacity: 0.18,
+      filter: "grayscale(100%) contrast(95%) brightness(102%)",
+      pointerEvents: "none",
+    }}
+  />
+
+  <div
+    style={{
+      width: "100%",
+      maxWidth: 400,
+      position: "relative",
+      zIndex: 1,
+    }}
+  >
+    {children}
+  </div>
+</div>
     </div>
   );
 }

@@ -3,7 +3,8 @@ import AuthLayout from "../Layouts/AuthLayout";
 import InputField from "../components/InputField";
 import { usuariosMock } from "../data/mockData";
 import { COLORS } from "../styles/colors";
-function CadastroScreen({ onCadastro, onIrLogin }) {
+
+function CadastroScreen({ onCadastro, onIrLogin, onIrLanding }) {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -56,6 +57,22 @@ function CadastroScreen({ onCadastro, onIrLogin }) {
           Entrar
         </button>
       </div>
+      <div style={{ fontSize: 13, color: COLORS.textSec, textAlign: "center", marginTop: 12 }}>
+  <button
+    onClick={onIrLanding}
+    style={{
+      background: "none",
+      border: "none",
+      cursor: "pointer",
+      color: COLORS.green,
+      fontWeight: 600,
+      fontSize: 13,
+      padding: 0,
+    }}
+  >
+    Voltar ao início
+  </button>
+</div>
     </AuthLayout>
   );
 }

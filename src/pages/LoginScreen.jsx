@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button, TextField, Typography, Box, Link } from '@mui/material';
 import { Calendar, CheckCircle, Recycle, Trash2 } from 'lucide-react';
 
-export default function LoginScreen({ onLogin, onIrCadastro }) {
+export default function LoginScreen({ onLogin, onIrCadastro, onIrLanding }) {
   const [loginData, setLoginData] = useState({
     email: '',
     senha: ''
@@ -78,13 +78,31 @@ export default function LoginScreen({ onLogin, onIrCadastro }) {
       </Box>
 
       {/* Centro - Formulário de Login */}
-      <Box
-        className="w-[44%] flex items-center justify-center px-16"
-        sx={{
-          backgroundColor: '#ffffff'
-        }}
-      >
-        <Box className="w-full max-w-sm">
+  <Box
+  className="w-[44%] flex items-center justify-center px-16"
+  sx={{
+    backgroundColor: '#ffffff',
+    position: 'relative',
+    overflow: 'hidden',
+
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      inset: 0,
+
+      backgroundImage: 'url("/brick-wall.jpg")',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+
+      opacity: 0.22,
+
+      filter: 'grayscale(100%) contrast(85%) brightness(108%)',
+
+      pointerEvents: 'none',
+    },
+  }}
+>
+        <Box className="w-full max-w-sm" sx={{ position: 'relative', zIndex: 1 }}>
           <Typography
             variant="h4"
             sx={{ fontWeight: 700, marginBottom: '8px', color: '#1f2937', fontSize: '1.75rem' }}
@@ -181,22 +199,20 @@ export default function LoginScreen({ onLogin, onIrCadastro }) {
               Entrar
             </Button>
 
-            <Box className="text-center mb-6">
-              <Typography sx={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                Não tem conta?{' '}
-                <Link
-                  component="button" onClick={onIrCadastro}
-                  sx={{
-                    color: '#2E7D32',
-                    fontWeight: 600,
-                    textDecoration: 'none',
-                    '&:hover': { textDecoration: 'underline' }
-                  }}
-                >
-                  Cadastre-se
-                </Link>
-              </Typography>
-            </Box>
+            <Box className="text-center mb-4">
+  <Typography sx={{ fontSize: '0.875rem', color: '#6b7280' }}>
+    Não tem conta?{' '}
+    <Link component="button" onClick={onIrCadastro} sx={{ color: '#2E7D32', fontWeight: 600, textDecoration: 'none' }}>
+      Cadastre-se
+    </Link>
+  </Typography>
+</Box>
+
+<Box className="text-center mb-6">
+  <Link component="button" onClick={onIrLanding} sx={{ color: '#2E7D32', fontWeight: 600, textDecoration: 'none' }}>
+    Voltar ao início
+  </Link>
+</Box>
 
             <Box
               sx={{

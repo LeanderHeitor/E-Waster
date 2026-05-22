@@ -2,10 +2,22 @@ import PageHeader from "../components/PageHeader";
 import { COLORS } from "../styles/colors";
 function HomeScreen({ onNavigate, usuario, totalPontos, totalAgendamentos, totalHistorico }) {
   return (
-    <div>
+  <div
+    style={{
+      minHeight: "calc(100vh - 72px)",
+      padding: "32px",
+      borderRadius: 24,
+      backgroundImage:
+        'linear-gradient(rgba(255,255,255,0.55), rgba(255,255,255,0.72)), url("/user-home-bg.png")',
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
+    }}
+  >
       <PageHeader
         title={`Bem-vindo, ${usuario}`}
         subtitle="Gerencie suas coletas de residuos eletronicos."
+        subtitleColor="#1f2937"
       />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16, marginBottom: 32, maxWidth: 520 }}>
         <div style={{ background: COLORS.white, border: `1px solid ${COLORS.grayBorder}`, borderRadius: 12, padding: "20px 24px" }}>
