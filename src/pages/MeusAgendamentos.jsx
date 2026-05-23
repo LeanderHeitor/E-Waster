@@ -8,7 +8,20 @@ function MeusAgendamentos({ agendamentos, onAgendar, onCancelar }) {
 
   if (agendamentos.length === 0) {
     return (
-      <div>
+  <div
+    style={{
+      minHeight: "calc(100vh - 72px)",
+      padding: "32px",
+      borderRadius: 24,
+
+      backgroundImage:
+        'linear-gradient(rgba(255,255,255,0.72), rgba(255,255,255,0.80)), url("/image2.png")',
+
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
+    }}
+  >
         <PageHeader title="Meus Agendamentos" subtitle="Historico de coletas agendadas." />
         <div style={{ background: COLORS.white, border: `1px solid ${COLORS.grayBorder}`, borderRadius: 12, padding: "60px 40px", textAlign: "center", maxWidth: 480 }}>
           <div style={{ width: 56, height: 56, borderRadius: 12, background: COLORS.grayLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: COLORS.gray, margin: "0 auto 20px" }}>VAZIO</div>
@@ -31,7 +44,20 @@ function MeusAgendamentos({ agendamentos, onAgendar, onCancelar }) {
   const ordenados = agendamentos.slice().reverse();
 
   return (
-    <div>
+  <div
+    style={{
+      minHeight: "calc(100vh - 72px)",
+      padding: "32px",
+      borderRadius: 24,
+
+      backgroundImage:
+        'linear-gradient(rgba(255,255,255,0.72), rgba(255,255,255,0.80)), url("/image2.png")',
+
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
+    }}
+  >
       <PageHeader
         title="Meus Agendamentos"
         subtitle={`${agendamentos.length} agendamento(s) — ${totalPontos} pontos estimados`}

@@ -4,7 +4,20 @@ import { COLORS } from "../styles/colors";
 function AgendamentoList({ onSelect, agendamentos }) {
   const slotsOcupados = agendamentos.filter((a) => a.status !== "Cancelado").map((a) => a.slot.id);
   return (
-    <div>
+  <div
+    style={{
+      minHeight: "calc(100vh - 72px)",
+      padding: "32px",
+      borderRadius: 24,
+
+      backgroundImage:
+        'linear-gradient(rgba(255,255,255,0.72), rgba(255,255,255,0.80)), url("/image4.png")',
+
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
+    }}
+  >
       <PageHeader title="Agendar Coleta" subtitle="Selecione um horario disponivel para entrega dos seus residuos." />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
         {slotsData.map((slot) => {

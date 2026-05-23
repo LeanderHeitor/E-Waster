@@ -11,6 +11,7 @@ import AgendamentoSucesso from "./pages/AgendamentoSucesso";
 import LandingPage from "./pages/LandingPage";
 import AdminLoginScreen from "./pages/AdminLoginScreen";
 import AdminDashboard from "./pages/AdminDashboard";
+import RankingPage from "./pages/RankingPage";
 
 export default function App() {
   const [authScreen, setAuthScreen] = useState("landing");
@@ -152,6 +153,9 @@ if (usuarioLogado && isAdmin) {
             onCancelar={handleCancelarAgendamento}
           />
         )}
+        {screen === "ranking" && (
+  <RankingPage usuario={usuarioLogado} />
+)}
       </main>
     </div>
   );
