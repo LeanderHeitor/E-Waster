@@ -18,8 +18,24 @@ dist-ssr
 .idea
 .claude/
 .DS_Store
+Thumbs.db
+desktop.ini
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# Variaveis de ambiente / segredos
+.env
+.env.*
+!.env.example
+
+# Build do backend (defensivo, ja coberto pelo backend/.gitignore)
+backend/target/
+backend/.maven-home/
+
+# Output do Vite (defensivo, ja coberto pelo frontend/.gitignore)
+frontend/dist/
+
+*.md

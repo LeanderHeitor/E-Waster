@@ -8,25 +8,33 @@ import MeusAgendamentos from "./pages/MeusAgendamentos";
 import AgendamentoList from "./pages/AgendamentoList";
 import AgendamentoConfirm from "./pages/AgendamentoConfirm";
 import AgendamentoSucesso from "./pages/AgendamentoSucesso";
+import { useAuth } from "./context/AuthContext";
 
 export default function App() {
+  const { usuario, autenticado, logout } = useAuth();
   const [authScreen, setAuthScreen] = useState("login");
-  const [usuarioLogado, setUsuarioLogado] = useState(null);
   const [screen, setScreen] = useState("home");
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [agendamentos, setAgendamentos] = useState([]);
   const [ultimoAgendamento, setUltimoAgendamento] = useState(null);
 
-  if (!usuarioLogado) {
+  if (!autenticado) {
     if (authScreen === "login") {
-      return <LoginScreen onLogin={(nome) => setUsuarioLogado(nome)} onIrCadastro={() => setAuthScreen("cadastro")} />;
+      return <LoginScreen onIrCadastro={() => setAuthScreen("cadastro")} />;
     }
-    return <CadastroScreen onCadastro={(nome) => setUsuarioLogado(nome)} onIrLogin={() => setAuthScreen("login")} />;
+    return (
+      <CadastroScreen
+        onCadastro={() => setAuthScreen("login")}
+        onIrLogin={() => setAuthScreen("login")}
+      />
+    );
   }
 
   const agendamentosAtivos = agendamentos.filter((a) => a.status !== "Cancelado");
   const totalPontos = agendamentosAtivos.reduce((sum, a) => sum + a.totalPontos, 0);
   const totalAgendamentosAtivos = agendamentosAtivos.length;
+
+  const nomeUsuario = usuario?.nome ?? "";
 
   const handleConfirmarAgendamento = (itens, totalPts) => {
     const novoAgendamento = {
@@ -48,7 +56,7 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    setUsuarioLogado(null);
+    logout();
     setAuthScreen("login");
     setScreen("home");
     setAgendamentos([]);
@@ -58,13 +66,13 @@ export default function App() {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', background: COLORS.grayLight }}>
-      <Sidebar screen={screen} onNavigate={setScreen} usuario={usuarioLogado} onLogout={handleLogout} />
+      <Sidebar screen={screen} onNavigate={setScreen} usuario={nomeUsuario} onLogout={handleLogout} />
 
       <main style={{ flex: 1, padding: "36px 40px", overflowY: "auto" }}>
         {screen === "home" && (
           <HomeScreen
             onNavigate={setScreen}
-            usuario={usuarioLogado}
+            usuario={nomeUsuario}
             totalPontos={totalPontos}
             totalAgendamentos={totalAgendamentosAtivos}
             totalHistorico={agendamentos.length}

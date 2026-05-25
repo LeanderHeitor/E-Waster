@@ -1,18 +1,37 @@
 import React, { useState } from 'react';
-import { Button, TextField, Typography, Box, Link } from '@mui/material';
+import { Button, TextField, Typography, Box, Link, Alert } from '@mui/material';
 import { Calendar, CheckCircle, Recycle, Trash2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
-export default function LoginScreen({ onLogin, onIrCadastro }) {
+export default function LoginScreen({ onIrCadastro }) {
+  const { login } = useAuth();
   const [loginData, setLoginData] = useState({
     email: '',
     senha: ''
   });
+  const [erro, setErro] = useState('');
+  const [carregando, setCarregando] = useState(false);
 
-  const handleSubmit = (e) => {
-  e.preventDefault();
-  console.log("Login:", loginData);
-  onLogin("Eito");
-};
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErro('');
+
+    if (!loginData.email.trim() || !loginData.senha) {
+      setErro('Informe e-mail e senha.');
+      return;
+    }
+
+    setCarregando(true);
+    try {
+      await login(loginData.email.trim(), loginData.senha);
+      // ao logar, o AuthContext atualiza `autenticado` e o App.jsx
+      // troca automaticamente para as telas privadas.
+    } catch (err) {
+      setErro(err.message || 'Nao foi possivel entrar.');
+    } finally {
+      setCarregando(false);
+    }
+  };
 
   const handleChange = (e) => {
     setLoginData({
@@ -160,11 +179,18 @@ export default function LoginScreen({ onLogin, onIrCadastro }) {
               />
             </Box>
 
+            {erro && (
+              <Alert severity="error" sx={{ marginBottom: '16px', borderRadius: '12px' }}>
+                {erro}
+              </Alert>
+            )}
+
             <Button
               type="submit"
               variant="contained"
               size="large"
               fullWidth
+              disabled={carregando}
               sx={{
                 background: 'linear-gradient(135deg, #2E7D32 0%, #388E3C 100%)',
                 '&:hover': {
@@ -178,7 +204,7 @@ export default function LoginScreen({ onLogin, onIrCadastro }) {
                 borderRadius: '12px'
               }}
             >
-              Entrar
+              {carregando ? 'Entrando...' : 'Entrar'}
             </Button>
 
             <Box className="text-center mb-6">

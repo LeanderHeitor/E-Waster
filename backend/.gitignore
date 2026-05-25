@@ -4,6 +4,13 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+# Maven wrapper cache (extraido por ./mvnw)
+.maven-home/
+
+# Logs locais
+*.log
+backend-run.log
+
 ### STS ###
 .apt_generated
 .classpath
