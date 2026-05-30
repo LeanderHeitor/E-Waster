@@ -1,37 +1,18 @@
 import React, { useState } from 'react';
-import { Button, TextField, Typography, Box, Link, Alert } from '@mui/material';
+import { Button, TextField, Typography, Box, Link } from '@mui/material';
 import { Calendar, CheckCircle, Recycle, Trash2 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
 
-export default function LoginScreen({ onIrCadastro }) {
-  const { login } = useAuth();
+export default function LoginScreen({ onLogin, onIrCadastro, onIrLanding }) {
   const [loginData, setLoginData] = useState({
     email: '',
     senha: ''
   });
-  const [erro, setErro] = useState('');
-  const [carregando, setCarregando] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setErro('');
-
-    if (!loginData.email.trim() || !loginData.senha) {
-      setErro('Informe e-mail e senha.');
-      return;
-    }
-
-    setCarregando(true);
-    try {
-      await login(loginData.email.trim(), loginData.senha);
-      // ao logar, o AuthContext atualiza `autenticado` e o App.jsx
-      // troca automaticamente para as telas privadas.
-    } catch (err) {
-      setErro(err.message || 'Nao foi possivel entrar.');
-    } finally {
-      setCarregando(false);
-    }
-  };
+  const handleSubmit = (e) => {
+  e.preventDefault();
+  console.log("Login:", loginData);
+  onLogin("Eito");
+};
 
   const handleChange = (e) => {
     setLoginData({
@@ -97,13 +78,31 @@ export default function LoginScreen({ onIrCadastro }) {
       </Box>
 
       {/* Centro - Formulário de Login */}
-      <Box
-        className="w-[44%] flex items-center justify-center px-16"
-        sx={{
-          backgroundColor: '#ffffff'
-        }}
-      >
-        <Box className="w-full max-w-sm">
+  <Box
+  className="w-[44%] flex items-center justify-center px-16"
+  sx={{
+    backgroundColor: '#ffffff',
+    position: 'relative',
+    overflow: 'hidden',
+
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      inset: 0,
+
+      backgroundImage: 'url("brick-wall.jpg")',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+
+      opacity: 0.22,
+
+      filter: 'grayscale(100%) contrast(85%) brightness(108%)',
+
+      pointerEvents: 'none',
+    },
+  }}
+>
+        <Box className="w-full max-w-sm" sx={{ position: 'relative', zIndex: 1 }}>
           <Typography
             variant="h4"
             sx={{ fontWeight: 700, marginBottom: '8px', color: '#1f2937', fontSize: '1.75rem' }}
@@ -179,18 +178,11 @@ export default function LoginScreen({ onIrCadastro }) {
               />
             </Box>
 
-            {erro && (
-              <Alert severity="error" sx={{ marginBottom: '16px', borderRadius: '12px' }}>
-                {erro}
-              </Alert>
-            )}
-
             <Button
               type="submit"
               variant="contained"
               size="large"
               fullWidth
-              disabled={carregando}
               sx={{
                 background: 'linear-gradient(135deg, #2E7D32 0%, #388E3C 100%)',
                 '&:hover': {
@@ -204,25 +196,23 @@ export default function LoginScreen({ onIrCadastro }) {
                 borderRadius: '12px'
               }}
             >
-              {carregando ? 'Entrando...' : 'Entrar'}
+              Entrar
             </Button>
 
-            <Box className="text-center mb-6">
-              <Typography sx={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                Não tem conta?{' '}
-                <Link
-                  component="button" onClick={onIrCadastro}
-                  sx={{
-                    color: '#2E7D32',
-                    fontWeight: 600,
-                    textDecoration: 'none',
-                    '&:hover': { textDecoration: 'underline' }
-                  }}
-                >
-                  Cadastre-se
-                </Link>
-              </Typography>
-            </Box>
+            <Box className="text-center mb-4">
+  <Typography sx={{ fontSize: '0.875rem', color: '#6b7280' }}>
+    Não tem conta?{' '}
+    <Link component="button" onClick={onIrCadastro} sx={{ color: '#2E7D32', fontWeight: 600, textDecoration: 'none' }}>
+      Cadastre-se
+    </Link>
+  </Typography>
+</Box>
+
+<Box className="text-center mb-6">
+  <Link component="button" onClick={onIrLanding} sx={{ color: '#2E7D32', fontWeight: 600, textDecoration: 'none' }}>
+    Voltar ao início
+  </Link>
+</Box>
 
             <Box
               sx={{

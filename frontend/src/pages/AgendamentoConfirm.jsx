@@ -19,7 +19,17 @@ function AgendamentoConfirm({ slot, onBack, onConfirm }) {
   const itensSelecionados = tiposResiduo.filter((t) => selecionados.includes(t.id));
 
   return (
-    <div>
+    <div
+      style={{
+        minHeight: "calc(100vh - 72px)",
+        padding: "32px",
+        borderRadius: 24,
+        backgroundImage:
+          'linear-gradient(rgba(255,255,255,0.70), rgba(255,255,255,0.82)), url("/image3.png")',
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
       <BotaoVoltar onClick={onBack} label="Voltar aos horarios" />
       <PageHeader title="Confirmar Agendamento" />
 

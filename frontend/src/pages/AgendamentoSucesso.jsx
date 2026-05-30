@@ -2,8 +2,39 @@ import PageHeader from "../components/PageHeader";
 import { COLORS } from "../styles/colors";
 function AgendamentoSucesso({ agendamento, onHome, onVerAgendamentos }) {
   return (
-    <div style={{ maxWidth: 560 }}>
-      <div style={{ background: COLORS.white, border: `1px solid ${COLORS.grayBorder}`, borderRadius: 12, padding: "40px", textAlign: "center" }}>
+  <div
+    style={{
+      minHeight: "calc(100vh - 72px)",
+      padding: "32px",
+      borderRadius: 24,
+
+      backgroundImage:
+        'linear-gradient(rgba(255,255,255,0.74), rgba(255,255,255,0.82)), url("/image5.webp")',
+
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
+
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    }}
+  >
+      <div
+  style={{
+    maxWidth: 560,
+    width: "100%",
+
+    background: "rgba(255,255,255,0.92)",
+
+    border: `1px solid ${COLORS.grayBorder}`,
+    borderRadius: 12,
+    padding: "40px",
+    textAlign: "center",
+
+    backdropFilter: "blur(6px)",
+  }}
+>
         <div style={{ width: 56, height: 56, borderRadius: "50%", background: COLORS.greenBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: COLORS.green, margin: "0 auto 20px" }}>OK</div>
         <div style={{ fontSize: 20, fontWeight: 700, color: COLORS.text, marginBottom: 8 }}>Agendamento confirmado</div>
         <div style={{ fontSize: 14, color: COLORS.textSec, lineHeight: 1.6 }}>

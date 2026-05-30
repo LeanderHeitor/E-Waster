@@ -8,33 +8,78 @@ import MeusAgendamentos from "./pages/MeusAgendamentos";
 import AgendamentoList from "./pages/AgendamentoList";
 import AgendamentoConfirm from "./pages/AgendamentoConfirm";
 import AgendamentoSucesso from "./pages/AgendamentoSucesso";
-import { useAuth } from "./context/AuthContext";
+import LandingPage from "./pages/LandingPage";
+import AdminLoginScreen from "./pages/AdminLoginScreen";
+import AdminDashboard from "./pages/AdminDashboard";
+import RankingPage from "./pages/RankingPage";
 
 export default function App() {
-  const { usuario, autenticado, logout } = useAuth();
-  const [authScreen, setAuthScreen] = useState("login");
+  const [authScreen, setAuthScreen] = useState("landing");
+  const [usuarioLogado, setUsuarioLogado] = useState(null);
   const [screen, setScreen] = useState("home");
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [agendamentos, setAgendamentos] = useState([]);
   const [ultimoAgendamento, setUltimoAgendamento] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  if (!autenticado) {
-    if (authScreen === "login") {
-      return <LoginScreen onIrCadastro={() => setAuthScreen("cadastro")} />;
-    }
+  if (!usuarioLogado) {
+  if (authScreen === "landing") {
     return (
-      <CadastroScreen
-        onCadastro={() => setAuthScreen("login")}
-        onIrLogin={() => setAuthScreen("login")}
+      <LandingPage
+        onLogin={() => setAuthScreen("login")}
+        onCadastro={() => setAuthScreen("cadastro")}
+        onAdmin={() => setAuthScreen("admin-login")}
       />
     );
   }
 
+  if (authScreen === "login") {
+    return (
+      <LoginScreen
+  onLogin={(nome) => setUsuarioLogado(nome)}
+  onIrCadastro={() => setAuthScreen("cadastro")}
+  onIrLanding={() => setAuthScreen("landing")}
+/>
+    );
+  }
+
+  if (authScreen === "cadastro") {
+    return (
+      <CadastroScreen
+  onCadastro={(nome) => setUsuarioLogado(nome)}
+  onIrLogin={() => setAuthScreen("login")}
+  onIrLanding={() => setAuthScreen("landing")}
+/>
+    );
+  }
+if (authScreen === "admin-login") {
+  return (
+    <AdminLoginScreen
+      onAdminLogin={(nome) => {
+  setUsuarioLogado(nome);
+  setIsAdmin(true);
+}}
+      onIrLogin={() => setAuthScreen("login")}
+      onIrLanding={() => setAuthScreen("landing")}
+    />
+  );
+}
+  return <LandingPage onLogin={() => setAuthScreen("login")} onCadastro={() => setAuthScreen("cadastro")} onAdmin={() => setAuthScreen("admin-login")} />;
+}
+if (usuarioLogado && isAdmin) {
+  return (
+    <AdminDashboard
+      onLogout={() => {
+        setUsuarioLogado(null);
+        setIsAdmin(false);
+        setAuthScreen("landing");
+      }}
+    />
+  );
+}
   const agendamentosAtivos = agendamentos.filter((a) => a.status !== "Cancelado");
   const totalPontos = agendamentosAtivos.reduce((sum, a) => sum + a.totalPontos, 0);
   const totalAgendamentosAtivos = agendamentosAtivos.length;
-
-  const nomeUsuario = usuario?.nome ?? "";
 
   const handleConfirmarAgendamento = (itens, totalPts) => {
     const novoAgendamento = {
@@ -56,23 +101,24 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    logout();
+    setUsuarioLogado(null);
     setAuthScreen("login");
     setScreen("home");
     setAgendamentos([]);
     setSelectedSlot(null);
     setUltimoAgendamento(null);
+    setIsAdmin(false);
   };
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', background: COLORS.grayLight }}>
-      <Sidebar screen={screen} onNavigate={setScreen} usuario={nomeUsuario} onLogout={handleLogout} />
+      <Sidebar screen={screen} onNavigate={setScreen} usuario={usuarioLogado} onLogout={handleLogout} />
 
       <main style={{ flex: 1, padding: "36px 40px", overflowY: "auto" }}>
         {screen === "home" && (
           <HomeScreen
             onNavigate={setScreen}
-            usuario={nomeUsuario}
+            usuario={usuarioLogado}
             totalPontos={totalPontos}
             totalAgendamentos={totalAgendamentosAtivos}
             totalHistorico={agendamentos.length}
@@ -107,6 +153,9 @@ export default function App() {
             onCancelar={handleCancelarAgendamento}
           />
         )}
+        {screen === "ranking" && (
+  <RankingPage usuario={usuarioLogado} />
+)}
       </main>
     </div>
   );
