@@ -69,4 +69,25 @@ describe("RF02 - Login de usuário", () => {
       expect(mockLogin).toHaveBeenCalledWith("eito@email.com", "123456");
     });
   });
+  
+ it("CT-23: desabilita o botão durante o carregamento do login", async () => {
+  mockLogin.mockImplementationOnce(
+    () => new Promise((resolve) => setTimeout(resolve, 200))
+  );
+
+  render(<LoginScreen onIrCadastro={vi.fn()} />);
+
+  fireEvent.change(screen.getByPlaceholderText("seu@email.com"), {
+    target: { value: "teste@email.com" },
+  });
+
+  fireEvent.change(screen.getByPlaceholderText("Sua senha"), {
+    target: { value: "123456" },
+  });
+
+  fireEvent.click(screen.getByRole("button", { name: /entrar/i }));
+
+  expect(screen.getByRole("button", { name: /entrando/i })).toBeDisabled();
+});
+
 });
