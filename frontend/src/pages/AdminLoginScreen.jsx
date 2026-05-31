@@ -108,7 +108,7 @@ export default function AdminLoginScreen({ onAdminLogin, onIrLogin, onIrLanding 
       position: 'absolute',
       inset: 0,
 
-      backgroundImage: 'url("brick-wall.jpg")',
+      backgroundImage: 'url("/brick-wall.jpg")',
       backgroundSize: 'cover',
       backgroundPosition: 'center',
 
