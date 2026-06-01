@@ -3,6 +3,7 @@ import AuthLayout from "../Layouts/AuthLayout";
 import InputField from "../components/InputField";
 import { cadastrarUsuario } from "../api/authApi";
 import { COLORS } from "../styles/colors";
+import { Alert } from "@mui/material";
 
 function CadastroScreen({ onCadastro, onIrLogin, onIrLanding }) {
   const [nome, setNome] = useState("");
@@ -148,16 +149,10 @@ function CadastroScreen({ onCadastro, onIrLogin, onIrLanding }) {
       />
 
       {erros.geral && (
-        <div
-          style={{
-            fontSize: 13,
-            color: "#D32F2F",
-            marginBottom: 12,
-          }}
-        >
-          {erros.geral}
-        </div>
-      )}
+  <Alert severity="error" sx={{ marginBottom: "16px", borderRadius: "12px" }}>
+    {erros.geral}
+  </Alert>
+)}
 
       <button
         disabled={carregando}
