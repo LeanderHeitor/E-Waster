@@ -1,8 +1,22 @@
+import { useState, useEffect } from "react";
 import PageHeader from "../components/PageHeader";
-import { slotsData } from "../data/mockData";
+import { listarSlots } from "../api/slotApi";
 import { COLORS } from "../styles/colors";
 function AgendamentoList({ onSelect, agendamentos }) {
-  const slotsOcupados = agendamentos.filter((a) => a.status !== "Cancelado").map((a) => a.slot.id);
+  const [slots, setSlots] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState("");
+
+  useEffect(() => {
+    let ativo = true;
+    listarSlots()
+      .then((lista) => { if (ativo) setSlots(lista); })
+      .catch((e) => { if (ativo) setErro(e.message || "Falha ao carregar os horarios."); })
+      .finally(() => { if (ativo) setCarregando(false); });
+    return () => { ativo = false; };
+  }, []);
+
+  const slotsOcupados = (agendamentos || []).filter((a) => a.status !== "Cancelado").map((a) => a.slot.id);
   return (
   <div
     style={{
@@ -19,8 +33,17 @@ function AgendamentoList({ onSelect, agendamentos }) {
     }}
   >
       <PageHeader title="Agendar Coleta" subtitle="Selecione um horario disponivel para entrega dos seus residuos." />
+      {carregando && (
+        <div style={{ fontSize: 13, color: COLORS.textSec, padding: "16px 0" }}>Carregando horarios...</div>
+      )}
+      {erro && (
+        <div style={{ fontSize: 13, color: "#c0392b", padding: "16px 0" }}>{erro}</div>
+      )}
+      {!carregando && !erro && slots.length === 0 && (
+        <div style={{ fontSize: 13, color: COLORS.textSec, padding: "16px 0" }}>Nenhum horario disponivel no momento.</div>
+      )}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
-        {slotsData.map((slot) => {
+        {slots.map((slot) => {
           const esgotado = slot.vagas === 0;
           const jaAgendado = slotsOcupados.includes(slot.id);
           const desabilitado = esgotado || jaAgendado;
