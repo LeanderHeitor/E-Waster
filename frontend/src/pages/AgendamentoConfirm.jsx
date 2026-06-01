@@ -1,11 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PageHeader from "../components/PageHeader";
-import InputField from "../components/InputField";
-import { tiposResiduo } from "../data/mockData";
+import { listarTiposResiduo } from "../api/tipoResiduoApi";
 import { COLORS } from "../styles/colors";
 import BotaoVoltar from "../components/BotaoVoltar";
 function AgendamentoConfirm({ slot, onBack, onConfirm }) {
   const [selecionados, setSelecionados] = useState([]);
+  const [tiposResiduo, setTiposResiduo] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState("");
+
+  useEffect(() => {
+    let ativo = true;
+    listarTiposResiduo()
+      .then((tipos) => { if (ativo) setTiposResiduo(tipos); })
+      .catch((e) => { if (ativo) setErro(e.message || "Falha ao carregar os tipos de residuo."); })
+      .finally(() => { if (ativo) setCarregando(false); });
+    return () => { ativo = false; };
+  }, []);
 
   const toggle = (id) => {
     setSelecionados((prev) => prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]);
@@ -19,7 +30,17 @@ function AgendamentoConfirm({ slot, onBack, onConfirm }) {
   const itensSelecionados = tiposResiduo.filter((t) => selecionados.includes(t.id));
 
   return (
-    <div>
+    <div
+      style={{
+        minHeight: "calc(100vh - 72px)",
+        padding: "32px",
+        borderRadius: 24,
+        backgroundImage:
+          'linear-gradient(rgba(255,255,255,0.70), rgba(255,255,255,0.82)), url("/image3.png")',
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
       <BotaoVoltar onClick={onBack} label="Voltar aos horarios" />
       <PageHeader title="Confirmar Agendamento" />
 
@@ -50,6 +71,17 @@ function AgendamentoConfirm({ slot, onBack, onConfirm }) {
           <div style={{ fontSize: 13, color: COLORS.textSec, marginBottom: 16 }}>
             Selecione ao menos um item. Os pontos sao calculados automaticamente.
           </div>
+
+          {carregando && (
+            <div style={{ fontSize: 13, color: COLORS.textSec, padding: "16px 0" }}>
+              Carregando tipos de residuo...
+            </div>
+          )}
+          {erro && (
+            <div style={{ fontSize: 13, color: "#c0392b", padding: "16px 0" }}>
+              {erro}
+            </div>
+          )}
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
             {tiposResiduo.map((tipo) => {

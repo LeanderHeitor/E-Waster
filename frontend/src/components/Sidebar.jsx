@@ -5,10 +5,12 @@ function Sidebar({ screen, onNavigate, usuario, onLogout }) {
     { id: "home", label: "Inicio" },
     { id: "agendamento", label: "Agendar Coleta" },
     { id: "meus-agendamentos", label: "Meus Agendamentos" },
+    { id: "ranking", label: "Ranking" },
   ];
 
   const activeGroup = screen.startsWith("agendamento") ? "agendamento"
     : screen.startsWith("meus-agendamentos") ? "meus-agendamentos"
+    : screen.startsWith("ranking") ? "ranking"
     : "home";
 
   return (
