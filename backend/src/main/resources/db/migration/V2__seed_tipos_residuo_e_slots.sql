@@ -1,5 +1,5 @@
 -- =========================================================
--- V3 — Seed: 9 tipos de residuo + slots de coleta
+-- V2 — Seed: 9 tipos de residuo + slots de coleta
 -- Dados convertidos do antigo frontend/src/data/mockData.js.
 -- =========================================================
 
