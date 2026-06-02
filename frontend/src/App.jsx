@@ -26,7 +26,10 @@ export default function App() {
   const [agendamentos, setAgendamentos] = useState([]);
   const [slotsData, setSlotsData] = useState([]);
   const [ultimoAgendamento, setUltimoAgendamento] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Admin é derivado da role persistida (token + usuario no localStorage),
+  // então sobrevive a um refresh da página.
+  const isAdmin = autenticado && usuario?.tipo === "ADMIN";
 
   // ==============================
   // FUNÇÃO DE CARREGAMENTO (CORRIGIDA)
@@ -76,10 +79,10 @@ export default function App() {
   // EFECT DE CARREGAMENTO BACKEND
   // ==============================
   useEffect(() => {
-    if (autenticado || isAdmin) {
+    if (autenticado) {
       carregarDadosDoServidor();
     }
-  }, [autenticado, isAdmin, carregarDadosDoServidor]);
+  }, [autenticado, carregarDadosDoServidor]);
 
   // ==============================
   // ROTAS DE ADMIN COMPARTILHADAS/PRIVADAS
@@ -87,8 +90,8 @@ export default function App() {
   if (isAdmin) {
     return (
       <AdminDashboard
+        token={token}
         onLogout={() => {
-          setIsAdmin(false);
           logout();
           setAuthScreen("landing");
         }}
@@ -193,7 +196,6 @@ export default function App() {
       setSlotsData([]);
       setSelectedSlot(null);
       setUltimoAgendamento(null);
-      setIsAdmin(false);
     };
 
     return (
@@ -279,7 +281,6 @@ export default function App() {
   if (authScreen === "admin-login") {
     return (
       <AdminLoginScreen
-        onAdminLogin={() => setIsAdmin(true)}
         onIrLogin={() => setAuthScreen("login")}
         onIrLanding={() => setAuthScreen("landing")}
       />

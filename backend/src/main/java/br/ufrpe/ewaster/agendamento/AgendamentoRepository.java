@@ -17,4 +17,14 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Intege
     // 🚀 ADICIONE ESTE MÉTODO PARA SANAR O ERRO DO SERVICE:
     @Query("SELECT COUNT(a) FROM Agendamento a WHERE a.slot.id = :slotId AND a.status <> 'CANCELADO'")
     long countAgendamentosAtivosPorSlot(@Param("slotId") Integer slotId);
+
+    // Painel admin: todos os agendamentos PENDENTE com usuário, slot e itens carregados.
+    @Query("SELECT DISTINCT a FROM Agendamento a " +
+            "JOIN FETCH a.usuario " +
+            "JOIN FETCH a.slot " +
+            "LEFT JOIN FETCH a.itens i " +
+            "LEFT JOIN FETCH i.tipoResiduo " +
+            "WHERE a.status = br.ufrpe.ewaster.agendamento.StatusAgendamento.PENDENTE " +
+            "ORDER BY a.id")
+    List<Agendamento> findPendentesComUsuario();
 }

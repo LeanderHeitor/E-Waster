@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { Button, TextField, Typography, Box, Link } from "@mui/material";
 import { Shield, LockKeyhole, BarChart3, Users, Megaphone } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
-export default function AdminLoginScreen({ onAdminLogin, onIrLogin, onIrLanding }) {
+export default function AdminLoginScreen({ onIrLogin, onIrLanding }) {
+  const { login, logout } = useAuth();
+
   const [adminData, setAdminData] = useState({
     email: "",
     senha: "",
@@ -17,16 +20,24 @@ export default function AdminLoginScreen({ onAdminLogin, onIrLogin, onIrLanding 
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setErro("");
 
-    if (adminData.email === "admin@ewaster.com" && adminData.senha === "admin123") {
-      setErro("");
-      onAdminLogin("Administrador");
-      return;
+    try {
+      // Login real no backend; a role vem no campo `tipo` da resposta.
+      const usuario = await login(adminData.email.trim(), adminData.senha);
+
+      if (usuario.tipo !== "ADMIN") {
+        // Conta válida, mas não é admin: derruba a sessão e barra o acesso.
+        logout();
+        setErro("Esta conta não tem permissão de administrador.");
+        return;
+      }
+      // Sucesso: o App detecta usuario.tipo === "ADMIN" e renderiza o painel.
+    } catch (error) {
+      setErro(error.message || "Credenciais de administrador inválidas.");
     }
-
-    setErro("Credenciais de administrador inválidas.");
   };
 
   return (

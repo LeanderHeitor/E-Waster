@@ -21,3 +21,9 @@
   jwt:
     secret: "ewaster-dev-secret-change-me-please-1234567890-abcdefghijklmnop"
     expiration-ms: 86400000
+
+  app:
+    admin:
+      nome: Administrador
+      email: admin@ewaster.com
+      senha: admin123

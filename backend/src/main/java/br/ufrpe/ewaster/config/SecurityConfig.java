@@ -4,6 +4,7 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -49,6 +50,11 @@ public class SecurityConfig {
                                 "/agendamentos",
                                 "/agendamentos/**"
                         ).permitAll()
+                        // Rotas administrativas: exigem papel ADMIN (resolvido pelo JwtAuthFilter).
+                        .requestMatchers("/api/v1/descartes/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/usuarios").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/agendamentos/pendentes").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/agendamentos/*/recusar").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
