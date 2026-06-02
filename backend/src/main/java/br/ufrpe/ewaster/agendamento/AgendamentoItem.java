@@ -1,6 +1,7 @@
 package br.ufrpe.ewaster.agendamento;
 
 import br.ufrpe.ewaster.tiporesiduo.TipoResiduo;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 @Entity
@@ -11,6 +12,7 @@ public class AgendamentoItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "agendamento_id")
     private Agendamento agendamento;

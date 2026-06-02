@@ -1,5 +1,6 @@
 import logoImg from "../assets/Ewaister.png";
 import { COLORS } from "../styles/colors";
+
 function Sidebar({ screen, onNavigate, usuario, onLogout }) {
   const navItems = [
     { id: "home", label: "Inicio" },
@@ -22,6 +23,7 @@ function Sidebar({ screen, onNavigate, usuario, onLogout }) {
         </div>
         <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)" }}>Coleta Consciente</div>
       </div>
+
       <nav style={{ padding: "16px 12px", flex: 1 }}>
         {navItems.map((item) => {
           const ativo = activeGroup === item.id;
@@ -42,9 +44,13 @@ function Sidebar({ screen, onNavigate, usuario, onLogout }) {
           );
         })}
       </nav>
+
       <div style={{ padding: "16px 24px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
         <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>Logado como</div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.85)", marginTop: 2, marginBottom: 10 }}>{usuario}</div>
+        {/* 🚀 CORRIGIDO: Agora renderiza apenas a propriedade string .nome */}
+        <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.85)", marginTop: 2, marginBottom: 10 }}>
+          {usuario?.nome || "Usuário"}
+        </div>
         <button
           onClick={onLogout}
           style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.7)", borderRadius: 6, padding: "7px 12px", fontSize: 12, cursor: "pointer", width: "100%", textAlign: "center" }}
@@ -55,4 +61,5 @@ function Sidebar({ screen, onNavigate, usuario, onLogout }) {
     </div>
   );
 }
+
 export default Sidebar;

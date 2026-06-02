@@ -1,21 +1,25 @@
 import PageHeader from "../components/PageHeader";
 import { COLORS } from "../styles/colors";
+
 function HomeScreen({ onNavigate, usuario, totalPontos, totalAgendamentos, totalHistorico }) {
+  // 🚀 Extrai o nome de dentro do objeto se ele existir, ou usa o próprio valor caso venha como texto limpo.
+  const nomeUsuario = typeof usuario === "object" ? (usuario?.nome || usuario?.username || "Usuário") : usuario;
+
   return (
-  <div
-    style={{
-      minHeight: "calc(100vh - 72px)",
-      padding: "32px",
-      borderRadius: 24,
-      backgroundImage:
-        'linear-gradient(rgba(255,255,255,0.55), rgba(255,255,255,0.72)), url("/user-home-bg.png")',
-      backgroundSize: "cover",
-      backgroundPosition: "center",
-      backgroundRepeat: "no-repeat",
-    }}
-  >
+    <div
+      style={{
+        minHeight: "calc(100vh - 72px)",
+        padding: "32px",
+        borderRadius: 24,
+        backgroundImage:
+          'linear-gradient(rgba(255,255,255,0.55), rgba(255,255,255,0.72)), url("/user-home-bg.png")',
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
       <PageHeader
-        title={`Bem-vindo, ${usuario}`}
+        title={`Bem-vindo, ${nomeUsuario}`} // 🚀 Agora exibe o texto correto e não trava o React
         subtitle="Gerencie suas coletas de residuos eletronicos."
         subtitleColor="#1f2937"
       />
@@ -68,4 +72,5 @@ function HomeScreen({ onNavigate, usuario, totalPontos, totalAgendamentos, total
     </div>
   );
 }
+
 export default HomeScreen;

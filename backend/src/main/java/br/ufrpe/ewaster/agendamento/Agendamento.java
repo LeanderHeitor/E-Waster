@@ -1,5 +1,5 @@
 package br.ufrpe.ewaster.agendamento;
-
+import java.util.List;
 import br.ufrpe.ewaster.slot.SlotColeta;
 import br.ufrpe.ewaster.user.User;
 import jakarta.persistence.*;
@@ -23,6 +23,17 @@ public class Agendamento {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private StatusAgendamento status;
+
+    @OneToMany(mappedBy = "agendamento", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<AgendamentoItem> itens = new java.util.ArrayList<>();
+
+    public List<AgendamentoItem> getItens() {
+        return itens;
+    }
+
+    public void setItens(List<AgendamentoItem> itens) {
+        this.itens = itens;
+    }
 
     public Agendamento() {
     }

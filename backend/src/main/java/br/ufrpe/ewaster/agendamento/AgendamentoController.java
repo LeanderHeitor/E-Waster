@@ -1,0 +1,80 @@
+package br.ufrpe.ewaster.agendamento;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import br.ufrpe.ewaster.agendamento.dto.AgendamentoResponse;
+import br.ufrpe.ewaster.agendamento.dto.AgendamentoRequest;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@RestController
+@RequestMapping("/api/v1/agendamentos")
+public class AgendamentoController {
+
+    private final AgendamentoRepository agendamentoRepository;
+    private final AgendamentoService agendamentoService; // Injetando o service criado
+
+    public AgendamentoController(AgendamentoRepository agendamentoRepository,
+                                 AgendamentoService agendamentoService) {
+        this.agendamentoRepository = agendamentoRepository;
+        this.agendamentoService = agendamentoService;
+    }
+
+    // TAREFA 3: GET /agendamentos/me (Já integrado e usando seus métodos reais)
+    @GetMapping("/me")
+    public ResponseEntity<List<AgendamentoResponse>> listarMeusAgendamentos(Authentication authentication) {
+        String emailUsuario = authentication.getName();
+        List<Agendamento> lista = agendamentoRepository.findAllByUsuarioEmail(emailUsuario);
+
+        List<AgendamentoResponse> resposta = lista.stream().map(a -> {
+            int totalPts = a.getItens().stream()
+                    .mapToInt(item -> item.getTipoResiduo().getPontuacaoBase() * item.getQuantidade())
+                    .sum();
+
+            var slotDTO = new AgendamentoResponse.SlotDTO(
+                    a.getSlot().getId(),
+                    a.getSlot().getData(),
+                    a.getSlot().getHorarioInicio(),
+                    a.getSlot().getHorarioFim()
+            );
+
+            var itensDTO = a.getItens().stream().map(item -> new AgendamentoResponse.ItemResponse(
+                    item.getId(),
+                    item.getTipoResiduo().getNome(),
+                    item.getQuantidade(),
+                    item.getTipoResiduo().getPontuacaoBase()
+            )).collect(Collectors.toList());
+
+            return new AgendamentoResponse(a.getId(), a.getStatus().name(), totalPts, slotDTO, itensDTO);
+        }).collect(Collectors.toList());
+
+        return ResponseEntity.ok(resposta);
+    }
+
+    @PostMapping
+    public ResponseEntity<Agendamento> criarAgendamento(
+            @RequestBody AgendamentoRequest request,
+            Authentication authentication) {
+
+        String emailUsuario = authentication.getName();
+
+        // Chamando o service para validar e persistir pai e filhos
+        Agendamento novoAgendamento = agendamentoService.criarAgendamento(request, emailUsuario);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(novoAgendamento);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> cancelarAgendamento(
+            @PathVariable Integer id,
+            Authentication authentication) {
+
+        String emailUsuario = authentication.getName();
+        agendamentoService.cancelarAgendamento(id, emailUsuario);
+
+        return ResponseEntity.noContent().build(); // Status 204
+    }
+}

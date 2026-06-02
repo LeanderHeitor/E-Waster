@@ -3,7 +3,8 @@ import { Button, TextField, Typography, Box, Link, Alert } from '@mui/material';
 import { Calendar, CheckCircle, Recycle, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-export default function LoginScreen({ onIrCadastro }) {
+// 🚀 PROPRIEDADES ALINHADAS COM O APP.JSX
+export default function LoginScreen({ onIrCadastro, onIrLanding }) {
   const { login } = useAuth();
   const [loginData, setLoginData] = useState({
     email: '',
@@ -98,25 +99,24 @@ export default function LoginScreen({ onIrCadastro }) {
 
       {/* Centro - Formulário de Login */}
       <Box
-  className="w-[44%] flex items-center justify-center px-16"
-  sx={{
-    backgroundColor: '#ffffff',
-    position: 'relative',
-    overflow: 'hidden',
-
-    '&::before': {
-      content: '""',
-      position: 'absolute',
-      inset: 0,
-      backgroundImage: 'url("/brick-wall.jpg")',
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      opacity: 0.22,
-      filter: 'grayscale(100%) contrast(85%) brightness(108%)',
-      pointerEvents: 'none',
-    },
-  }}
->
+        className="w-[44%] flex items-center justify-center px-16"
+        sx={{
+          backgroundColor: '#ffffff',
+          position: 'relative',
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            inset: 0,
+            backgroundImage: 'url("/brick-wall.jpg")',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            opacity: 0.22,
+            filter: 'grayscale(100%) contrast(85%) brightness(108%)',
+            pointerEvents: 'none',
+          },
+        }}
+      >
         <Box className="w-full max-w-sm" sx={{ position: 'relative', zIndex: 1 }}>
           <Typography
             variant="h4"
@@ -225,7 +225,7 @@ export default function LoginScreen({ onIrCadastro }) {
               <Typography sx={{ fontSize: '0.875rem', color: '#6b7280' }}>
                 Não tem conta?{' '}
                 <Link
-                  component="button" onClick={onIrCadastro}
+                  component="button" type="button" onClick={onIrCadastro}
                   sx={{
                     color: '#2E7D32',
                     fontWeight: 600,
@@ -393,7 +393,7 @@ export default function LoginScreen({ onIrCadastro }) {
             </Box>
           </Box>
         </div>
-      </Box >
-    </div >
+      </Box>
+    </div>
   );
 }
