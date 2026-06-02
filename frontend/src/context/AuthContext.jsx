@@ -30,14 +30,20 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = useCallback(async (email, senha) => {
-    const data = await entrar({ email, senha });
-    const usuarioLogado = { nome: data.nome, email: data.email };
-    localStorage.setItem(TOKEN_STORAGE_KEY, data.token);
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(usuarioLogado));
-    setToken(data.token);
-    setUsuario(usuarioLogado);
-    return usuarioLogado;
-  }, []);
+  const data = await entrar({ email, senha });
+
+  const usuarioLogado = {
+    nome: data.nome || email.split("@")[0],
+    email: data.email || email,
+  };
+
+  localStorage.setItem(TOKEN_STORAGE_KEY, data.token);
+  localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(usuarioLogado));
+  setToken(data.token);
+  setUsuario(usuarioLogado);
+
+  return usuarioLogado;
+}, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_STORAGE_KEY);

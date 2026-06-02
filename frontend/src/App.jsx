@@ -12,6 +12,7 @@ import LandingPage from "./pages/LandingPage";
 import AdminLoginScreen from "./pages/AdminLoginScreen";
 import AdminDashboard from "./pages/AdminDashboard";
 import RankingPage from "./pages/RankingPage";
+import { useAuth } from "./context/AuthContext";
 
 export default function App() {
   const [authScreen, setAuthScreen] = useState("landing");
@@ -21,8 +22,11 @@ export default function App() {
   const [agendamentos, setAgendamentos] = useState([]);
   const [ultimoAgendamento, setUltimoAgendamento] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const { usuario, autenticado, logout } = useAuth();
+  const usuarioAtual = usuarioLogado || usuario?.nome;
+  const estaLogado = !!usuarioAtual || autenticado;
 
-  if (!usuarioLogado) {
+  if (!estaLogado) { 
   if (authScreen === "landing") {
     return (
       <LandingPage
@@ -66,7 +70,7 @@ if (authScreen === "admin-login") {
 }
   return <LandingPage onLogin={() => setAuthScreen("login")} onCadastro={() => setAuthScreen("cadastro")} onAdmin={() => setAuthScreen("admin-login")} />;
 }
-if (usuarioLogado && isAdmin) {
+if (estaLogado && isAdmin) {
   return (
     <AdminDashboard
       onLogout={() => {
@@ -101,6 +105,7 @@ if (usuarioLogado && isAdmin) {
   };
 
   const handleLogout = () => {
+    logout();
     setUsuarioLogado(null);
     setAuthScreen("login");
     setScreen("home");
@@ -112,7 +117,7 @@ if (usuarioLogado && isAdmin) {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', background: COLORS.grayLight }}>
-      <Sidebar screen={screen} onNavigate={setScreen} usuario={usuarioLogado} onLogout={handleLogout} />
+      <Sidebar screen={screen} onNavigate={setScreen} usuario={usuarioAtual} onLogout={handleLogout} />
 
       <main style={{ flex: 1, padding: "36px 40px", overflowY: "auto" }}>
         {screen === "home" && (
@@ -154,7 +159,7 @@ if (usuarioLogado && isAdmin) {
           />
         )}
         {screen === "ranking" && (
-  <RankingPage usuario={usuarioLogado} />
+  <RankingPage usuario={usuarioAtual} />
 )}
       </main>
     </div>
