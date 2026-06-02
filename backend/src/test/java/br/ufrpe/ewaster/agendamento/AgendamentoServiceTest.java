@@ -63,20 +63,22 @@ class AgendamentoServiceTest {
 
     @Test
     void criar_slotCheio_lancaErro() {
-        SlotColeta slot = slotRepository.findById(primeiroSlotId()).orElseThrow();
-        int capacidade = slot.getCapacidadeMaxima();
+        Integer slotId = primeiroSlotId();
+        SlotColeta slot = slotRepository.findById(slotId).orElseThrow();
+        long ativos = agendamentoRepository.countAgendamentosAtivosPorSlot(slotId);
+        long restantes = slot.getCapacidadeMaxima() - ativos;
 
-        // preenche o slot ate a capacidade
-        for (int i = 0; i < capacidade; i++) {
+        // preenche ate lotar (robusto a agendamentos pre-existentes no slot)
+        for (long i = 0; i < restantes; i++) {
             String email = "lota" + i + "@teste.dev";
             novoUsuario(email);
-            service.criarAgendamento(reqComUmItem(slot.getId()), email);
+            service.criarAgendamento(reqComUmItem(slotId), email);
         }
 
         // o proximo deve estourar
         novoUsuario("estouro@teste.dev");
         assertThrows(RuntimeException.class,
-                () -> service.criarAgendamento(reqComUmItem(slot.getId()), "estouro@teste.dev"));
+                () -> service.criarAgendamento(reqComUmItem(slotId), "estouro@teste.dev"));
     }
 
     @Test

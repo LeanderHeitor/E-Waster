@@ -27,35 +27,16 @@ public class AgendamentoController {
     @GetMapping("/me")
     public ResponseEntity<List<AgendamentoResponse>> listarMeusAgendamentos(Authentication authentication) {
         String emailUsuario = authentication.getName();
-        List<Agendamento> lista = agendamentoRepository.findAllByUsuarioEmail(emailUsuario);
-
-        List<AgendamentoResponse> resposta = lista.stream().map(a -> {
-            int totalPts = a.getItens().stream()
-                    .mapToInt(item -> item.getTipoResiduo().getPontuacaoBase() * item.getQuantidade())
-                    .sum();
-
-            var slotDTO = new AgendamentoResponse.SlotDTO(
-                    a.getSlot().getId(),
-                    a.getSlot().getData(),
-                    a.getSlot().getHorarioInicio(),
-                    a.getSlot().getHorarioFim()
-            );
-
-            var itensDTO = a.getItens().stream().map(item -> new AgendamentoResponse.ItemResponse(
-                    item.getId(),
-                    item.getTipoResiduo().getNome(),
-                    item.getQuantidade(),
-                    item.getTipoResiduo().getPontuacaoBase()
-            )).collect(Collectors.toList());
-
-            return new AgendamentoResponse(a.getId(), a.getStatus().name(), totalPts, slotDTO, itensDTO);
-        }).collect(Collectors.toList());
+        List<AgendamentoResponse> resposta = agendamentoRepository.findAllByUsuarioEmail(emailUsuario)
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
 
         return ResponseEntity.ok(resposta);
     }
 
     @PostMapping
-    public ResponseEntity<Agendamento> criarAgendamento(
+    public ResponseEntity<AgendamentoResponse> criarAgendamento(
             @RequestBody AgendamentoRequest request,
             Authentication authentication) {
 
@@ -64,7 +45,8 @@ public class AgendamentoController {
         // Chamando o service para validar e persistir pai e filhos
         Agendamento novoAgendamento = agendamentoService.criarAgendamento(request, emailUsuario);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(novoAgendamento);
+        // Devolve um DTO (nao a entidade crua, que exporia o hash da senha do usuario)
+        return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(novoAgendamento));
     }
 
     @DeleteMapping("/{id}")
@@ -76,5 +58,28 @@ public class AgendamentoController {
         agendamentoService.cancelarAgendamento(id, emailUsuario);
 
         return ResponseEntity.noContent().build(); // Status 204
+    }
+
+    // Converte a entidade no DTO de resposta (evita expor dados sensiveis do usuario).
+    private AgendamentoResponse toResponse(Agendamento a) {
+        int totalPts = a.getItens().stream()
+                .mapToInt(item -> item.getTipoResiduo().getPontuacaoBase() * item.getQuantidade())
+                .sum();
+
+        var slotDTO = new AgendamentoResponse.SlotDTO(
+                a.getSlot().getId(),
+                a.getSlot().getData(),
+                a.getSlot().getHorarioInicio(),
+                a.getSlot().getHorarioFim()
+        );
+
+        var itensDTO = a.getItens().stream().map(item -> new AgendamentoResponse.ItemResponse(
+                item.getId(),
+                item.getTipoResiduo().getNome(),
+                item.getQuantidade(),
+                item.getTipoResiduo().getPontuacaoBase()
+        )).collect(Collectors.toList());
+
+        return new AgendamentoResponse(a.getId(), a.getStatus().name(), totalPts, slotDTO, itensDTO);
     }
 }

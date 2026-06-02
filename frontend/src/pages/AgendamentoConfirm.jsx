@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { COLORS } from "../styles/colors";
+import { api } from "../api/http";
 
 // Mock caso seu backend ainda não tenha dados cadastrados na inicialização
 const ITENS_PADRAO = [
@@ -23,13 +24,9 @@ export default function AgendamentoConfirm({ slot, onBack, onConfirm }) {
   useEffect(() => {
     const buscarTiposResiduos = async () => {
       try {
-        const response = await fetch("http://localhost:8080/api/v1/tiporesiduo");
-        if (response.ok) {
-          const dados = await response.json();
-          setTiposResiduos(dados.length > 0 ? dados : ITENS_PADRAO);
-        } else {
-          setTiposResiduos(ITENS_PADRAO);
-        }
+        // api.get usa a URL certa (/tipos-residuo) e injeta o JWT pelo interceptor
+        const dados = await api.get("/tipos-residuo");
+        setTiposResiduos(dados.length > 0 ? dados : ITENS_PADRAO);
       } catch (error) {
         console.error("Erro ao buscar tipos de resíduos:", error);
         setTiposResiduos(ITENS_PADRAO);
