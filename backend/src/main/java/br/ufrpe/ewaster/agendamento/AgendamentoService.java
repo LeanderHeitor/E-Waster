@@ -83,4 +83,18 @@ public class AgendamentoService {
         agendamento.setStatus(StatusAgendamento.CANCELADO);
         agendamentoRepository.save(agendamento);
     }
+
+    // Admin recusa um agendamento pendente (marca como NAO_COMPARECEU).
+    @Transactional
+    public void recusarAgendamento(Integer id) {
+        Agendamento agendamento = agendamentoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Agendamento não encontrado"));
+
+        if (agendamento.getStatus() != StatusAgendamento.PENDENTE) {
+            throw new RuntimeException("Só agendamentos pendentes podem ser recusados.");
+        }
+
+        agendamento.setStatus(StatusAgendamento.NAO_COMPARECEU);
+        agendamentoRepository.save(agendamento);
+    }
 }

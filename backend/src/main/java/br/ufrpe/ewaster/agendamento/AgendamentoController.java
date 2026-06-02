@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import br.ufrpe.ewaster.agendamento.dto.AgendamentoResponse;
+import br.ufrpe.ewaster.agendamento.dto.AgendamentoAdminResponse;
 import br.ufrpe.ewaster.agendamento.dto.AgendamentoRequest;
 
 import java.util.List;
@@ -60,6 +61,26 @@ public class AgendamentoController {
         return ResponseEntity.noContent().build(); // Status 204
     }
 
+    // ===== Endpoints administrativos (somente ADMIN — ver SecurityConfig) =====
+
+    // Lista todos os agendamentos pendentes de validação (de todos os usuários).
+    @GetMapping("/pendentes")
+    public ResponseEntity<List<AgendamentoAdminResponse>> listarPendentes() {
+        List<AgendamentoAdminResponse> resposta = agendamentoRepository.findPendentesComUsuario()
+                .stream()
+                .map(this::toAdminResponse)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(resposta);
+    }
+
+    // Recusa um agendamento pendente (marca NAO_COMPARECEU).
+    @PatchMapping("/{id}/recusar")
+    public ResponseEntity<Void> recusarAgendamento(@PathVariable Integer id) {
+        agendamentoService.recusarAgendamento(id);
+        return ResponseEntity.noContent().build();
+    }
+
     // Converte a entidade no DTO de resposta (evita expor dados sensiveis do usuario).
     private AgendamentoResponse toResponse(Agendamento a) {
         int totalPts = a.getItens().stream()
@@ -81,5 +102,35 @@ public class AgendamentoController {
         )).collect(Collectors.toList());
 
         return new AgendamentoResponse(a.getId(), a.getStatus().name(), totalPts, slotDTO, itensDTO);
+    }
+
+    // Versão admin: inclui o dono do agendamento.
+    private AgendamentoAdminResponse toAdminResponse(Agendamento a) {
+        int totalPts = a.getItens().stream()
+                .mapToInt(item -> item.getTipoResiduo().getPontuacaoBase() * item.getQuantidade())
+                .sum();
+
+        var u = a.getUsuario();
+        var usuario = new AgendamentoAdminResponse.UsuarioMini(
+                u.getId(),
+                u.getNome(),
+                u.getEmail(),
+                u.getPontuacaoTotal() != null ? u.getPontuacaoTotal() : 0
+        );
+
+        var itens = a.getItens().stream().map(item -> new AgendamentoAdminResponse.ItemMini(
+                item.getTipoResiduo().getNome(),
+                item.getQuantidade(),
+                item.getTipoResiduo().getPontuacaoBase()
+        )).collect(Collectors.toList());
+
+        return new AgendamentoAdminResponse(
+                a.getId(),
+                a.getStatus().name(),
+                totalPts,
+                String.valueOf(a.getSlot().getData()),
+                usuario,
+                itens
+        );
     }
 }

@@ -1,55 +1,94 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Box, Typography, Button } from "@mui/material";
 import {
   Users,
   Megaphone,
-  BarChart3,
   Recycle,
-  FileText,
   LogOut,
   CheckCircle,
   XCircle,
   ArrowLeft,
 } from "lucide-react";
 
-export default function AdminDashboard({ onLogout }) {
-  const [adminView, setAdminView] = useState("overview");
-  const [usuarioSelecionado, setUsuarioSelecionado] = useState(null);
+const API = "http://localhost:8080/api/v1";
 
-  const usuariosMock = [
-    {
-      id: 1,
-      nome: "Maria Oliveira",
-      email: "maria@email.com",
-      pontos: 850,
-      pendentes: [
-        { id: 1, item: "Notebook/Laptop", data: "24/05", pontos: 25, status: "Pendente" },
-        { id: 2, item: "Pilhas e Baterias", data: "26/05", pontos: 5, status: "Pendente" },
-      ],
-    },
-    {
-      id: 2,
-      nome: "João Silva",
-      email: "joao@email.com",
-      pontos: 720,
-      pendentes: [
-        { id: 3, item: "Monitor/Tela", data: "25/05", pontos: 20, status: "Pendente" },
-      ],
-    },
-    {
-      id: 3,
-      nome: "Ana Costa",
-      email: "ana@email.com",
-      pontos: 180,
-      pendentes: [],
-    },
-  ];
+export default function AdminDashboard({ token, onLogout }) {
+  const [adminView, setAdminView] = useState("overview");
+  const [usuarioSelecionadoId, setUsuarioSelecionadoId] = useState(null);
+
+  const [usuarios, setUsuarios] = useState([]);
+  const [pendentes, setPendentes] = useState([]); // agendamentos PENDENTE (todos os usuários)
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState("");
+
+  // Busca usuários + agendamentos pendentes reais do backend (rotas ADMIN).
+  const carregar = useCallback(async () => {
+    if (!token) return;
+    setCarregando(true);
+    setErro("");
+    const headers = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    };
+    try {
+      const [resUsuarios, resPendentes] = await Promise.all([
+        fetch(`${API}/usuarios`, { headers }),
+        fetch(`${API}/agendamentos/pendentes`, { headers }),
+      ]);
+
+      if (!resUsuarios.ok) throw new Error("Falha ao carregar usuários (" + resUsuarios.status + ").");
+      if (!resPendentes.ok) throw new Error("Falha ao carregar pendentes (" + resPendentes.status + ").");
+
+      setUsuarios(await resUsuarios.json());
+      setPendentes(await resPendentes.json());
+    } catch (e) {
+      setErro(e.message || "Erro ao falar com o servidor.");
+    } finally {
+      setCarregando(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    carregar();
+  }, [carregar]);
+
+  // Lista de usuários comuns (não mostra a conta admin).
+  const usuariosComuns = usuarios.filter((u) => u.tipo !== "ADMIN");
+  const pendentesDoUsuario = (id) => pendentes.filter((p) => p.usuario?.id === id);
+  const usuarioSelecionado = usuarios.find((u) => u.id === usuarioSelecionadoId) || null;
+  const totalPontosDistribuidos = usuarios.reduce((s, u) => s + (u.pontuacaoTotal || 0), 0);
+
+  const aprovar = async (agendamentoId) => {
+    try {
+      const res = await fetch(`${API}/descartes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ agendamentoId }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      await carregar();
+    } catch (e) {
+      alert("Erro ao aprovar: " + e.message);
+    }
+  };
+
+  const recusar = async (agendamentoId) => {
+    try {
+      const res = await fetch(`${API}/agendamentos/${agendamentoId}/recusar`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error(await res.text());
+      await carregar();
+    } catch (e) {
+      alert("Erro ao recusar: " + e.message);
+    }
+  };
 
   const cards = [
-    { title: "Usuários cadastrados", value: "128", icon: Users },
-    { title: "Campanhas ativas", value: "3", icon: Megaphone },
-    { title: "Resíduos coletados", value: "245 kg", icon: Recycle },
-    { title: "Relatórios gerados", value: "12", icon: FileText },
+    { title: "Usuários cadastrados", value: usuariosComuns.length, icon: Users },
+    { title: "Agendamentos pendentes", value: pendentes.length, icon: Megaphone },
+    { title: "Pontos distribuídos", value: totalPontosDistribuidos, icon: Recycle },
   ];
 
   const cardStyle = {
@@ -80,7 +119,7 @@ export default function AdminDashboard({ onLogout }) {
               Painel Administrativo
             </Typography>
             <Typography sx={{ color: "rgba(255,255,255,0.72)" }}>
-              Gerencie campanhas, usuários e relatórios do E-Waster.
+              Valide os agendamentos e acompanhe a pontuação dos usuários do E-Waster.
             </Typography>
           </Box>
 
@@ -100,9 +139,21 @@ export default function AdminDashboard({ onLogout }) {
           </Button>
         </Box>
 
+        {erro && (
+          <Box sx={{ ...cardStyle, borderColor: "rgba(239,154,154,0.5)", marginBottom: "20px" }}>
+            <Typography sx={{ color: "#EF9A9A", fontWeight: 600 }}>⚠️ {erro}</Typography>
+          </Box>
+        )}
+
+        {carregando && (
+          <Typography sx={{ color: "rgba(255,255,255,0.72)", marginBottom: "20px" }}>
+            Carregando dados do servidor...
+          </Typography>
+        )}
+
         {adminView === "overview" && (
           <>
-            <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "18px", marginBottom: "28px" }}>
+            <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "18px", marginBottom: "28px" }}>
               {cards.map((card) => {
                 const Icon = card.icon;
                 return (
@@ -119,61 +170,26 @@ export default function AdminDashboard({ onLogout }) {
               })}
             </Box>
 
-            <Box sx={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: "20px" }}>
-              <Box sx={cardStyle}>
-                <Typography sx={{ fontWeight: 800, fontSize: "1.2rem", marginBottom: "18px" }}>
-                  Ações administrativas
-                </Typography>
+            <Box sx={cardStyle}>
+              <Typography sx={{ fontWeight: 800, fontSize: "1.2rem", marginBottom: "18px" }}>
+                Ações administrativas
+              </Typography>
 
-                <Box sx={{ display: "grid", gap: "14px" }}>
-                  <Button
-                    onClick={() => setAdminView("usuarios")}
-                    variant="outlined"
-                    startIcon={<Users size={18} />}
-                    sx={{
-                      justifyContent: "flex-start",
-                      color: "#fff",
-                      borderColor: "rgba(165,214,167,0.28)",
-                      borderRadius: "12px",
-                      textTransform: "none",
-                      padding: "12px 14px",
-                    }}
-                  >
-                    Visualizar usuários cadastrados
-                  </Button>
-
-                  {["Gerenciar campanhas ambientais", "Consultar relatórios de participação", "Analisar resíduos coletados por tipo"].map((item) => (
-                    <Button
-                      key={item}
-                      variant="outlined"
-                      startIcon={<BarChart3 size={18} />}
-                      sx={{
-                        justifyContent: "flex-start",
-                        color: "#fff",
-                        borderColor: "rgba(165,214,167,0.28)",
-                        borderRadius: "12px",
-                        textTransform: "none",
-                        padding: "12px 14px",
-                      }}
-                    >
-                      {item}
-                    </Button>
-                  ))}
-                </Box>
-              </Box>
-
-              <Box sx={cardStyle}>
-                <Typography sx={{ fontWeight: 800, fontSize: "1.2rem", marginBottom: "16px" }}>
-                  Campanha ativa
-                </Typography>
-                <Typography sx={{ color: "#A5D6A7", fontWeight: 700, marginBottom: "8px" }}>
-                  Semana do Descarte Consciente
-                </Typography>
-                <Typography sx={{ color: "rgba(255,255,255,0.72)", lineHeight: 1.7 }}>
-                  Campanha destinada ao recolhimento de celulares, notebooks, pilhas,
-                  cabos e outros resíduos eletrônicos.
-                </Typography>
-              </Box>
+              <Button
+                onClick={() => setAdminView("usuarios")}
+                variant="outlined"
+                startIcon={<Users size={18} />}
+                sx={{
+                  justifyContent: "flex-start",
+                  color: "#fff",
+                  borderColor: "rgba(165,214,167,0.28)",
+                  borderRadius: "12px",
+                  textTransform: "none",
+                  padding: "12px 14px",
+                }}
+              >
+                Visualizar usuários e validar agendamentos
+              </Button>
             </Box>
           </>
         )}
@@ -192,33 +208,39 @@ export default function AdminDashboard({ onLogout }) {
               Usuários cadastrados
             </Typography>
 
-            <Box sx={{ display: "grid", gap: "12px" }}>
-              {usuariosMock.map((user) => (
-                <Button
-                  key={user.id}
-                  onClick={() => setUsuarioSelecionado(user)}
-                  sx={{
-                    justifyContent: "space-between",
-                    color: "#fff",
-                    background: "rgba(255,255,255,0.06)",
-                    border: "1px solid rgba(165,214,167,0.20)",
-                    borderRadius: "14px",
-                    padding: "16px 18px",
-                    textTransform: "none",
-                  }}
-                >
-                  <span>{user.nome} — {user.email}</span>
-                  <span>{user.pendentes.length} pendência(s)</span>
-                </Button>
-              ))}
-            </Box>
+            {usuariosComuns.length === 0 && !carregando ? (
+              <Typography sx={{ color: "rgba(255,255,255,0.72)" }}>
+                Nenhum usuário cadastrado ainda.
+              </Typography>
+            ) : (
+              <Box sx={{ display: "grid", gap: "12px" }}>
+                {usuariosComuns.map((user) => (
+                  <Button
+                    key={user.id}
+                    onClick={() => setUsuarioSelecionadoId(user.id)}
+                    sx={{
+                      justifyContent: "space-between",
+                      color: "#fff",
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(165,214,167,0.20)",
+                      borderRadius: "14px",
+                      padding: "16px 18px",
+                      textTransform: "none",
+                    }}
+                  >
+                    <span>{user.nome} — {user.email}</span>
+                    <span>{pendentesDoUsuario(user.id).length} pendência(s)</span>
+                  </Button>
+                ))}
+              </Box>
+            )}
           </Box>
         )}
 
         {adminView === "usuarios" && usuarioSelecionado && (
           <Box sx={cardStyle}>
             <Button
-              onClick={() => setUsuarioSelecionado(null)}
+              onClick={() => setUsuarioSelecionadoId(null)}
               startIcon={<ArrowLeft size={18} />}
               sx={{ color: "#A5D6A7", textTransform: "none", marginBottom: "20px" }}
             >
@@ -232,20 +254,20 @@ export default function AdminDashboard({ onLogout }) {
               {usuarioSelecionado.email}
             </Typography>
             <Typography sx={{ color: "#A5D6A7", fontWeight: 700, marginBottom: "24px" }}>
-              {usuarioSelecionado.pontos} pontos confirmados
+              {usuarioSelecionado.pontuacaoTotal || 0} pontos confirmados
             </Typography>
 
             <Typography sx={{ fontWeight: 800, fontSize: "1.1rem", marginBottom: "14px" }}>
               Agendamentos pendentes de validação
             </Typography>
 
-            {usuarioSelecionado.pendentes.length === 0 ? (
+            {pendentesDoUsuario(usuarioSelecionado.id).length === 0 ? (
               <Typography sx={{ color: "rgba(255,255,255,0.72)" }}>
                 Este usuário não possui agendamentos pendentes.
               </Typography>
             ) : (
               <Box sx={{ display: "grid", gap: "12px" }}>
-                {usuarioSelecionado.pendentes.map((p) => (
+                {pendentesDoUsuario(usuarioSelecionado.id).map((p) => (
                   <Box
                     key={p.id}
                     sx={{
@@ -259,17 +281,27 @@ export default function AdminDashboard({ onLogout }) {
                     }}
                   >
                     <Box>
-                      <Typography sx={{ fontWeight: 700 }}>{p.item}</Typography>
+                      <Typography sx={{ fontWeight: 700 }}>
+                        {p.itens.map((i) => `${i.tipoResiduo} (x${i.quantidade})`).join(", ") || "Sem itens"}
+                      </Typography>
                       <Typography sx={{ color: "rgba(255,255,255,0.65)", fontSize: "0.85rem" }}>
-                        Data: {p.data} • {p.pontos} pontos estimados
+                        Data: {p.data} • {p.totalPts} pontos estimados
                       </Typography>
                     </Box>
 
                     <Box sx={{ display: "flex", gap: "10px" }}>
-                      <Button startIcon={<CheckCircle size={16} />} sx={{ color: "#A5D6A7", textTransform: "none" }}>
+                      <Button
+                        onClick={() => aprovar(p.id)}
+                        startIcon={<CheckCircle size={16} />}
+                        sx={{ color: "#A5D6A7", textTransform: "none" }}
+                      >
                         Aprovar
                       </Button>
-                      <Button startIcon={<XCircle size={16} />} sx={{ color: "#EF9A9A", textTransform: "none" }}>
+                      <Button
+                        onClick={() => recusar(p.id)}
+                        startIcon={<XCircle size={16} />}
+                        sx={{ color: "#EF9A9A", textTransform: "none" }}
+                      >
                         Recusar
                       </Button>
                     </Box>

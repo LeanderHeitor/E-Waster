@@ -51,10 +51,11 @@ export function AuthProvider({ children }) {
       throw new Error("Token não encontrado na resposta do servidor.");
     }
 
-    // 3. Cria o objeto do usuário local a partir do e-mail digitado
+    // 3. Cria o objeto do usuário local (usa nome/tipo da resposta quando vierem)
     const usuarioLogado = {
-      nome: email.split('@')[0],
-      email: email.trim()
+      nome: (data && data.nome) || email.split('@')[0],
+      email: email.trim(),
+      tipo: (data && data.tipo) || "USUARIO"
     };
 
     // 4. Salva de forma persistente no LocalStorage
