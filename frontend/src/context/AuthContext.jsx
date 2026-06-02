@@ -19,9 +19,11 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_STORAGE_KEY));
   const [usuario, setUsuario] = useState(() => lerUsuarioPersistido());
 
+  // Escuta deslogues forçados (ex: Token expirado / 401 Unauthorized)
   useEffect(() => {
     const handleUnauthorized = () => {
       localStorage.removeItem(USER_STORAGE_KEY);
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
       setToken(null);
       setUsuario(null);
     };
@@ -29,13 +31,40 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener("auth:unauthorized", handleUnauthorized);
   }, []);
 
+  // 🚀 FUNÇÃO DE LOGIN ADAPTATIVA e INTELIGENTE
   const login = useCallback(async (email, senha) => {
+    // 1. Faz a requisição para a API (O HTTP.js já extrai o .data)
     const data = await entrar({ email, senha });
-    const usuarioLogado = { nome: data.nome, email: data.email };
-    localStorage.setItem(TOKEN_STORAGE_KEY, data.token);
+
+    let jwtToken = null;
+
+    // 2. Identifica onde está o token na resposta do Spring Boot
+    if (typeof data === 'string') {
+      jwtToken = data; // Caso o backend devolva o texto puro do JWT
+    } else if (data && typeof data === 'object') {
+      // Caso o backend devolva um objeto JSON { token: "..." }
+      jwtToken = data.token || data.jwt || data.accessToken || data.id_token;
+    }
+
+    // Se mesmo após mapear não acharmos nada, barramos o fluxo
+    if (!jwtToken) {
+      throw new Error("Token não encontrado na resposta do servidor.");
+    }
+
+    // 3. Cria o objeto do usuário local a partir do e-mail digitado
+    const usuarioLogado = {
+      nome: email.split('@')[0],
+      email: email.trim()
+    };
+
+    // 4. Salva de forma persistente no LocalStorage
+    localStorage.setItem(TOKEN_STORAGE_KEY, jwtToken);
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(usuarioLogado));
-    setToken(data.token);
+
+    // 5. Atualiza os estados globais do React (Isso destrava o App.jsx)
+    setToken(jwtToken);
     setUsuario(usuarioLogado);
+
     return usuarioLogado;
   }, []);
 

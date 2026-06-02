@@ -1,23 +1,23 @@
-spring:
+  spring:
 
-  datasource:
-    url: jdbc:postgresql://localhost:5432/ewaster_dev
-    username: postgres
-    password: 123456
+    datasource:
+      url: jdbc:postgresql://localhost:5432/ewaster_dev
+      username: postgres
+      password: 123456
 
-  jpa:
-    hibernate:
-      ddl-auto: validate
-
-    show-sql: true
-
-    properties:
+    jpa:
       hibernate:
-        format_sql: true
+        ddl-auto: none
 
-  flyway:
-    baseline-on-migrate: true
+      show-sql: true
 
-jwt:
-  secret: "ewaster-dev-secret-change-me-please-1234567890-abcdefghijklmnop"
-  expiration-ms: 86400000
+      properties:
+        hibernate:
+          format_sql: true
+
+    flyway:
+      baseline-on-migrate: true
+
+  jwt:
+    secret: "ewaster-dev-secret-change-me-please-1234567890-abcdefghijklmnop"
+    expiration-ms: 86400000

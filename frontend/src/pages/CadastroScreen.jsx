@@ -40,6 +40,7 @@ function CadastroScreen({ onCadastro, onIrLogin, onIrLanding }) {
     try {
       await cadastrarUsuario({ nome: nomeLimpo, email: emailLimpo, senha });
       setSucesso(true);
+      // Dispara o callback para o App.jsx mudar o estado visual após o delay do efeito
       setTimeout(() => onCadastro(nomeLimpo), 1200);
     } catch (error) {
       setErros({ geral: error.message || "Erro ao realizar cadastro" });
@@ -81,8 +82,9 @@ function CadastroScreen({ onCadastro, onIrLogin, onIrLanding }) {
             Cadastro realizado!
           </div>
 
+          {/* 🌟 CORRIGIDO: Texto alinhado com o fluxo real de redirecionamento */}
           <div style={{ fontSize: 14, color: COLORS.textSec }}>
-            Entrando na sua conta...
+            Redirecionando para o login...
           </div>
         </div>
       </AuthLayout>

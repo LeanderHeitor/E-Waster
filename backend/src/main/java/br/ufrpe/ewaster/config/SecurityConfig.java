@@ -36,27 +36,22 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-
                 .csrf(csrf -> csrf.disable())
-
                 .cors(Customizer.withDefaults())
-
                 .sessionManagement(sm -> sm
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
                 .authorizeHttpRequests(auth -> auth
-
                         .requestMatchers(
                                 "/api/v1/health",
                                 "/api/v1/auth/**",
-                                "/error"
+                                "/api/v1/usuarios/ranking", // <-- ADICIONADO: Rota do ranking agora está liberada
+                                "/error",
+                                "/agendamentos",
+                                "/agendamentos/**"
                         ).permitAll()
-
                         .anyRequest().authenticated()
                 )
-
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable());
 

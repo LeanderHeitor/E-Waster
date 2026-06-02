@@ -1,158 +1,232 @@
-import { useState, useEffect } from "react";
-import PageHeader from "../components/PageHeader";
-import { listarTiposResiduo } from "../api/tipoResiduoApi";
+import React, { useState, useEffect } from "react";
 import { COLORS } from "../styles/colors";
-import BotaoVoltar from "../components/BotaoVoltar";
-function AgendamentoConfirm({ slot, onBack, onConfirm }) {
-  const [selecionados, setSelecionados] = useState([]);
-  const [tiposResiduo, setTiposResiduo] = useState([]);
-  const [carregando, setCarregando] = useState(true);
-  const [erro, setErro] = useState("");
 
+// Mock caso seu backend ainda não tenha dados cadastrados na inicialização
+const ITENS_PADRAO = [
+  { id: 1, nome: "Celular/SmartPhone", sigla: "CEL", pontuacaoBase: 50 },
+  { id: 2, nome: "Notebook/Laptop", sigla: "NB", pontuacaoBase: 80 },
+  { id: 3, nome: "Pilhas e Baterias", sigla: "PIL", pontuacaoBase: 15 },
+  { id: 4, nome: "Cabos e Carregadores", sigla: "CAB", pontuacaoBase: 10 },
+  { id: 5, nome: "Monitor/Tela", sigla: "MON", pontuacaoBase: 100 },
+  { id: 6, nome: "Teclado/Mouse", sigla: "TEC", pontuacaoBase: 25 },
+  { id: 7, nome: "Memoria RAM", sigla: "RAM", pontuacaoBase: 30 },
+  { id: 8, nome: "Placa-mãe", sigla: "MB", pontuacaoBase: 90 },
+  { id: 9, nome: "HD/SSD", sigla: "HD", pontuacaoBase: 40 },
+];
+
+export default function AgendamentoConfirm({ slot, onBack, onConfirm }) {
+  const [tiposResiduos, setTiposResiduos] = useState([]);
+  const [quantidades, setQuantidades] = useState({});
+  const [carregando, setCarregando] = useState(true);
+
+  // 1. Carrega os tipos de resíduos do Banco de Dados
   useEffect(() => {
-    let ativo = true;
-    listarTiposResiduo()
-      .then((tipos) => { if (ativo) setTiposResiduo(tipos); })
-      .catch((e) => { if (ativo) setErro(e.message || "Falha ao carregar os tipos de residuo."); })
-      .finally(() => { if (ativo) setCarregando(false); });
-    return () => { ativo = false; };
+    const buscarTiposResiduos = async () => {
+      try {
+        const response = await fetch("http://localhost:8080/api/v1/tiporesiduo");
+        if (response.ok) {
+          const dados = await response.json();
+          setTiposResiduos(dados.length > 0 ? dados : ITENS_PADRAO);
+        } else {
+          setTiposResiduos(ITENS_PADRAO);
+        }
+      } catch (error) {
+        console.error("Erro ao buscar tipos de resíduos:", error);
+        setTiposResiduos(ITENS_PADRAO);
+      } finally {
+        setCarregando(false);
+      }
+    };
+    buscarTiposResiduos();
   }, []);
 
-  const toggle = (id) => {
-    setSelecionados((prev) => prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]);
+  // 2. Funções para Alterar a Quantidade Selecionada
+  const alterarQuantidade = (id, mudanca) => {
+    setQuantidades((prev) => {
+      const atual = prev[id] || 0;
+      const nova = Math.max(0, atual + mudanca); // Impede números negativos
+      return { ...prev, [id]: nova };
+    });
   };
 
-  const totalPontos = selecionados.reduce((sum, id) => {
-    const item = tiposResiduo.find((t) => t.id === id);
-    return sum + (item?.pontos || 0);
+  // 3. Filtra apenas os itens que o usuário escolheu pelo menos 1 unidade
+  const itensSelecionados = tiposResiduos
+    .filter((item) => quantidades[item.id] > 0)
+    .map((item) => ({
+      ...item,
+      quantidade: quantidades[item.id],
+    }));
+
+  // 4. Calcula o total geral usando o 'pontuacaoBase' do Java
+  const totalPontosGeral = itensSelecionados.reduce((acc, item) => {
+    const pontosUnitarios = item.pontuacaoBase || 0;
+    return acc + pontosUnitarios * item.quantidade;
   }, 0);
 
-  const itensSelecionados = tiposResiduo.filter((t) => selecionados.includes(t.id));
+  const handleFinalizar = () => {
+    if (itensSelecionados.length === 0) {
+      alert("Por favor, selecione ao menos um item para entregar.");
+      return;
+    }
+    onConfirm(itensSelecionados, totalPontosGeral);
+  };
+
+  if (carregando) {
+    return <div style={{ padding: 32, color: COLORS.textSec }}>Carregando itens de descarte...</div>;
+  }
 
   return (
-    <div
-      style={{
-        minHeight: "calc(100vh - 72px)",
-        padding: "32px",
-        borderRadius: 24,
-        backgroundImage:
-          'linear-gradient(rgba(255,255,255,0.70), rgba(255,255,255,0.82)), url("/image3.png")',
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
-    >
-      <BotaoVoltar onClick={onBack} label="Voltar aos horarios" />
-      <PageHeader title="Confirmar Agendamento" />
+    <div style={{ display: "flex", gap: 32, maxWidth: 1100, position: "relative" }}>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 24, alignItems: "start" }}>
-        <div>
-          <div style={{ background: COLORS.greenBg, borderRadius: 10, padding: "20px 24px", marginBottom: 24, display: "flex", gap: 32 }}>
-            <div>
-              <div style={{ fontSize: 12, color: COLORS.green, fontWeight: 600, marginBottom: 4 }}>Data</div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: COLORS.text }}>{slot.dia}, {slot.data}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: 12, color: COLORS.green, fontWeight: 600, marginBottom: 4 }}>Turno</div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: COLORS.text }}>{slot.turno}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: 12, color: COLORS.green, fontWeight: 600, marginBottom: 4 }}>Horario</div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: COLORS.text }}>{slot.horario}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: 12, color: COLORS.green, fontWeight: 600, marginBottom: 4 }}>Vagas</div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: COLORS.text }}>{slot.vagas} restantes</div>
-            </div>
-          </div>
+      {/* SEÇÃO DA ESQUERDA: LISTA DE ITENS DISPONÍVEIS */}
+      <div style={{ flex: 1 }}>
+        <button
+          onClick={onBack}
+          style={{
+            background: "none", border: "none", color: COLORS.green,
+            fontWeight: 600, cursor: "pointer", marginBottom: 16, fontSize: 14
+          }}
+        >
+          ← Voltar para horários
+        </button>
 
-          <div style={{ fontSize: 14, fontWeight: 600, color: COLORS.text, marginBottom: 12 }}>
-            Quais itens voce vai entregar?
-          </div>
-          <div style={{ fontSize: 13, color: COLORS.textSec, marginBottom: 16 }}>
-            Selecione ao menos um item. Os pontos sao calculados automaticamente.
-          </div>
+        <h2 style={{ fontSize: 24, fontWeight: 700, color: COLORS.text, marginBottom: 4 }}>
+          Quais itens você vai entregar?
+        </h2>
+        <p style={{ fontSize: 14, color: COLORS.textSec, marginBottom: 24 }}>
+          Selecione ao menos um item. Os pontos são calculados automaticamente.
+        </p>
 
-          {carregando && (
-            <div style={{ fontSize: 13, color: COLORS.textSec, padding: "16px 0" }}>
-              Carregando tipos de residuo...
-            </div>
-          )}
-          {erro && (
-            <div style={{ fontSize: 13, color: "#c0392b", padding: "16px 0" }}>
-              {erro}
-            </div>
-          )}
+        {/* GRID DOS CARDS */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 16 }}>
+          {tiposResiduos.map((item) => {
+            const qtd = quantidades[item.id] || 0;
+            const pontosUnitarios = item.pontuacaoBase || 0;
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
-            {tiposResiduo.map((tipo) => {
-              const ativo = selecionados.includes(tipo.id);
-              return (
-                <button
-                  key={tipo.id}
-                  onClick={() => toggle(tipo.id)}
-                  style={{
-                    textAlign: "left", cursor: "pointer",
-                    border: `2px solid ${ativo ? COLORS.green : COLORS.grayBorder}`,
-                    borderRadius: 10, padding: "12px 14px",
-                    background: ativo ? COLORS.greenBg : COLORS.white,
-                    display: "flex", alignItems: "center", gap: 10,
-                    transition: "border-color 0.15s, background 0.15s",
-                  }}
-                >
-                  <div style={{ width: 36, height: 36, borderRadius: 6, background: ativo ? COLORS.green : COLORS.grayLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: ativo ? COLORS.white : COLORS.gray, flexShrink: 0 }}>
-                    {tipo.sigla}
+            return (
+              <div
+                key={item.id}
+                style={{
+                  background: "#ffffff",
+                  border: `1px solid ${qtd > 0 ? COLORS.green : "#e5e7eb"}`,
+                  borderRadius: 16,
+                  padding: "16px 20px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  boxShadow: qtd > 0 ? "0 4px 12px rgba(46,125,50,0.06)" : "none",
+                  transition: "all 0.2s"
+                }}
+              >
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                    <span style={{
+                      fontSize: 10, background: "#f3f4f6", padding: "2px 6px",
+                      borderRadius: 6, fontWeight: 700, color: "#6b7280"
+                    }}>
+                      {item.sigla || "RES"}
+                    </span>
+                    <strong style={{ fontSize: 15, color: COLORS.text }}>{item.nome}</strong>
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: COLORS.text }}>{tipo.nome}</div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: COLORS.orange, marginTop: 2 }}>+{tipo.pontos} pts</div>
-                  </div>
-                  {ativo && (
-                    <div style={{ width: 16, height: 16, borderRadius: "50%", background: COLORS.green, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: COLORS.white, fontWeight: 700, flexShrink: 0 }}>v</div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div style={{ background: COLORS.white, border: `1px solid ${COLORS.grayBorder}`, borderRadius: 12, padding: "24px", position: "sticky", top: 24 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: COLORS.text, marginBottom: 16 }}>Resumo</div>
-
-          {selecionados.length === 0 ? (
-            <div style={{ fontSize: 13, color: COLORS.textSec, padding: "12px 0", textAlign: "center" }}>
-              Selecione ao menos um item
-            </div>
-          ) : (
-            <>
-              {itensSelecionados.map((item) => (
-                <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: 8, marginBottom: 8, borderBottom: `1px solid ${COLORS.grayBorder}` }}>
-                  <span style={{ fontSize: 13, color: COLORS.text }}>{item.nome}</span>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: COLORS.orange }}>+{item.pontos}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#e67e22" }}>
+                    +{pontosUnitarios} pts
+                  </span>
                 </div>
-              ))}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
-                <span style={{ fontSize: 14, fontWeight: 600, color: COLORS.text }}>Total</span>
-                <span style={{ fontSize: 20, fontWeight: 700, color: COLORS.green }}>+{totalPontos} pts</span>
-              </div>
-            </>
-          )}
 
-          <button
-            onClick={() => selecionados.length > 0 && onConfirm(itensSelecionados, totalPontos)}
-            disabled={selecionados.length === 0}
-            style={{
-              width: "100%", marginTop: 20, padding: "12px",
-              background: selecionados.length > 0 ? COLORS.green : COLORS.grayBorder,
-              color: COLORS.white, border: "none", borderRadius: 8,
-              fontSize: 14, fontWeight: 600,
-              cursor: selecionados.length > 0 ? "pointer" : "default",
-            }}
-          >
-            Confirmar Agendamento
-          </button>
+                {/* CONTROLES ADICIONAR / REMOVER */}
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  {qtd > 0 && (
+                    <button
+                      onClick={() => alterarQuantidade(item.id, -1)}
+                      style={{
+                        width: 28, height: 28, borderRadius: "50%", border: "1px solid #d1d5db",
+                        background: "#fff", cursor: "pointer", fontWeight: "bold"
+                      }}
+                    >
+                      -
+                    </button>
+                  )}
+                  {qtd > 0 && <span style={{ fontWeight: 700, fontSize: 16, color: COLORS.text }}>{qtd}</span>}
+                  <button
+                    onClick={() => alterarQuantidade(item.id, 1)}
+                    style={{
+                      width: 28, height: 28, borderRadius: "50%",
+                      border: `1px solid ${COLORS.green}`,
+                      background: qtd > 0 ? COLORS.green : "#fff",
+                      color: qtd > 0 ? "#fff" : COLORS.green,
+                      cursor: "pointer", fontWeight: "bold"
+                    }}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
+
+      {/* SEÇÃO DA DIREITA: BOX DE RESUMO DE PONTUAÇÃO */}
+      <div style={{
+        width: 320, background: "#ffffff", borderRadius: 20, padding: 24,
+        border: "1px solid #e5e7eb", height: "fit-content", boxShadow: "0 4px 20px rgba(0,0,0,0.02)",
+        position: "sticky", top: 24
+      }}>
+        <h3 style={{ fontSize: 18, fontWeight: 700, color: COLORS.text, marginTop: 0, marginBottom: 16 }}>
+          Resumo
+        </h3>
+
+        {itensSelecionados.length === 0 ? (
+          <p style={{ color: COLORS.textSec, fontSize: 14, textAlign: "center", padding: "32px 0" }}>
+            Selecione ao menos um item
+          </p>
+        ) : (
+          <div>
+            <div style={{ maxHeight: 200, overflowY: "auto", marginBottom: 16, paddingRight: 4 }}>
+              {itensSelecionados.map((item) => (
+                <div
+                  key={item.id}
+                  style={{ display: "flex", justifyContent: "space-between", fontSize: 14, marginBottom: 10, color: COLORS.text }}
+                >
+                  <span>{item.quantidade}x {item.nome}</span>
+                  <span style={{ fontWeight: 600 }}>
+                    +{(item.pontuacaoBase || 0) * item.quantidade} pts
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <hr style={{ border: "none", borderTop: "1px solid #e5e7eb", marginBottom: 16 }} />
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+              <span style={{ fontWeight: 600, color: COLORS.text }}>Total acumulado:</span>
+              <span style={{ fontSize: 22, fontWeight: 800, color: COLORS.green }}>
+                {totalPontosGeral} pts
+              </span>
+            </div>
+          </div>
+        )}
+
+        <button
+          onClick={handleFinalizar}
+          disabled={itensSelecionados.length === 0}
+          style={{
+            width: "100%",
+            padding: "14px",
+            borderRadius: 12,
+            border: "none",
+            background: itensSelecionados.length === 0 ? "#e5e7eb" : COLORS.green,
+            color: itensSelecionados.length === 0 ? "#9ca3af" : "#ffffff",
+            fontWeight: 700,
+            fontSize: 15,
+            cursor: itensSelecionados.length === 0 ? "not-allowed" : "pointer",
+            transition: "background 0.2s"
+          }}
+        >
+          Confirmar Agendamento
+        </button>
+      </div>
+
     </div>
   );
 }
-export default AgendamentoConfirm;
