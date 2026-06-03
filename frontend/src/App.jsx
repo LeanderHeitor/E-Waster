@@ -78,11 +78,13 @@ export default function App() {
   // ==============================
   // EFECT DE CARREGAMENTO BACKEND
   // ==============================
+  // Recarrega no login e sempre que o usuário entra na Home ou em Meus
+  // Agendamentos, refletindo aprovações/recusas do admin sem precisar de F5.
   useEffect(() => {
-    if (autenticado) {
+    if (autenticado && (screen === "home" || screen === "meus-agendamentos")) {
       carregarDadosDoServidor();
     }
-  }, [autenticado, carregarDadosDoServidor]);
+  }, [autenticado, screen, carregarDadosDoServidor]);
 
   // ==============================
   // ROTAS DE ADMIN COMPARTILHADAS/PRIVADAS
