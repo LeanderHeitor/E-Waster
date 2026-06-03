@@ -1,4 +1,4 @@
-package br.ufrpe.ewaster.auth;
+package br.ufrpe.ewaster.auth.controller;
 
 import br.ufrpe.ewaster.auth.dto.AuthResponse;
 import br.ufrpe.ewaster.auth.dto.ErrorResponse;
