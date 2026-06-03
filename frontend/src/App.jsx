@@ -13,6 +13,7 @@ import AdminLoginScreen from "./pages/AdminLoginScreen";
 import AdminDashboard from "./pages/AdminDashboard";
 import RankingPage from "./pages/RankingPage";
 import PerfilPage from "./pages/PerfilPage";
+import Toast from "./components/Toast";
 import { useAuth } from "./context/AuthContext";
 
 export default function App() {
@@ -26,6 +27,8 @@ export default function App() {
   const [agendamentos, setAgendamentos] = useState([]);
   const [slotsData, setSlotsData] = useState([]);
   const [ultimoAgendamento, setUltimoAgendamento] = useState(null);
+  const [toast, setToast] = useState(null);
+  const closeToast = useCallback(() => setToast(null), []);
 
   // Admin é derivado da role persistida (token + usuario no localStorage),
   // então sobrevive a um refresh da página.
@@ -124,6 +127,13 @@ const totalAgendamentosAtivos = agendamentosAtivos.length;
       try {
         if (!token) throw new Error("Token de autenticação ausente.");
 
+        // Bloqueia agendar em horário que já passou (o backend também barra).
+        const inicioSlot = new Date(`${selectedSlot.data}T${selectedSlot.horarioInicio}`);
+        if (inicioSlot < new Date()) {
+          setToast({ message: "Esse horário já passou e não pode mais ser agendado.", type: "error" });
+          return;
+        }
+
         const payload = {
           slotId: selectedSlot.id,
           itens: itens.map((item) => ({
@@ -165,7 +175,7 @@ const totalAgendamentosAtivos = agendamentosAtivos.length;
 
         carregarDadosDoServidor();
       } catch (error) {
-        alert("Erro: " + error.message);
+        setToast({ message: error.message, type: "error" });
       }
     };
 
@@ -262,6 +272,7 @@ const totalAgendamentosAtivos = agendamentosAtivos.length;
   <PerfilPage token={token} />
 )}
         </main>
+        <Toast message={toast?.message} type={toast?.type} onClose={closeToast} />
       </div>
     );
   }

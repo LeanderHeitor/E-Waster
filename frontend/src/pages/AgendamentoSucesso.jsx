@@ -85,7 +85,7 @@ function AgendamentoSucesso({ agendamento, onHome, onVerAgendamentos }) {
           }}
         >
           <div style={{ fontSize: 12, color: COLORS.orange || "#ea580c", fontWeight: 500 }}>
-            Pontos ganhos
+            Pontos pendentes
           </div>
           <div style={{ fontSize: 32, fontWeight: 700, color: COLORS.orange || "#ea580c" }}>
             +{pontosCalculados}
