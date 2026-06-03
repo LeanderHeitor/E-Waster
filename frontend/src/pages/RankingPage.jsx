@@ -20,7 +20,7 @@ function RankingPage({ usuario, token }) {
           return;
         }
 
-        const response = await fetch("http://localhost:8080/api/v1/usuarios/ranking", {
+        const response = await fetch("http://localhost:8081/api/v1/usuarios/ranking", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",

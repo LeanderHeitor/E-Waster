@@ -12,7 +12,7 @@ import LandingPage from "./pages/LandingPage";
 import AdminLoginScreen from "./pages/AdminLoginScreen";
 import AdminDashboard from "./pages/AdminDashboard";
 import RankingPage from "./pages/RankingPage";
-
+import PerfilPage from "./pages/PerfilPage";
 import { useAuth } from "./context/AuthContext";
 
 export default function App() {
@@ -49,7 +49,7 @@ export default function App() {
 
       // AGENDAMENTOS
       const resAgendamentos = await fetch(
-        "http://localhost:8080/api/v1/agendamentos/me",
+        "http://localhost:8081/api/v1/agendamentos/me",
         { method: "GET", headers }
       );
 
@@ -61,7 +61,7 @@ export default function App() {
 
       // SLOTS
       const resSlots = await fetch(
-        "http://localhost:8080/api/v1/slots",
+        "http://localhost:8081/api/v1/slots",
         { method: "GET", headers }
       );
 
@@ -103,14 +103,19 @@ export default function App() {
   // USUÁRIO COMUM AUTENTICADO
   // ==============================
   if (autenticado) {
-    const agendamentosAtivos = agendamentos.filter(
-      (a) => a.status !== "Cancelado" && a.status !== "CANCELADO"
-    );
+  const agendamentosAtivos = agendamentos.filter(
+    (a) => a.status === "PENDENTE"
+  );
 
-    const totalPontos = agendamentosAtivos.reduce(
-      (sum, a) => sum + (a.totalPts || a.totalPontos || 0),
-      0
-    );
+  const agendamentosRealizados = agendamentos.filter(
+    (a) => a.status === "REALIZADO"
+  );
+
+  const totalPontos = agendamentosRealizados.reduce(
+    (sum, a) => sum + (a.totalPontos || 0),
+    0
+  );
+const totalAgendamentosAtivos = agendamentosAtivos.length;
 
     // ALTERADO: Agora a função recebe corretamente os itens selecionados e o totalPts do frontend
     const handleConfirmarAgendamento = async (itens, totalPts) => {
@@ -126,7 +131,7 @@ export default function App() {
         };
 
         const response = await fetch(
-          "http://localhost:8080/api/v1/agendamentos",
+          "http://localhost:8081/api/v1/agendamentos",
           {
             method: "POST",
             headers: {
@@ -167,7 +172,7 @@ export default function App() {
         if (!token) throw new Error("Token de autenticação ausente.");
 
         const response = await fetch(
-          `http://localhost:8080/api/v1/agendamentos/${id}`,
+          `http://localhost:8081/api/v1/agendamentos/${id}`,
           {
             method: "DELETE",
             headers: {
@@ -251,6 +256,9 @@ export default function App() {
           {screen === "ranking" && (
             <RankingPage usuario={usuario} token={token} />
           )}
+          {screen === "perfil" && (
+  <PerfilPage token={token} />
+)}
         </main>
       </div>
     );

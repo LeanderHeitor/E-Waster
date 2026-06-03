@@ -62,10 +62,10 @@ function HomeScreen({ onNavigate, usuario, totalPontos, totalAgendamentos, total
           <div style={{ fontSize: 15, fontWeight: 600, color: COLORS.text }}>Meus Agendamentos</div>
           <div style={{ fontSize: 13, color: COLORS.textSec, marginTop: 4, lineHeight: 1.4 }}>
             {totalHistorico === 0
-              ? "Nenhum agendamento ainda"
-              : totalAgendamentos === 0
-                ? `Ver historico (${totalHistorico} cancelado(s))`
-                : `${totalAgendamentos} ativo(s) — ver historico`}
+  ? "Nenhum agendamento ainda"
+  : totalAgendamentos === 0
+    ? `Ver historico (${totalHistorico} registro(s))`
+    : `${totalAgendamentos} pendente(s) — ver historico`}
           </div>
         </button>
       </div>

@@ -11,7 +11,7 @@ import {
   CalendarPlus,
 } from "lucide-react";
 
-const API = "http://localhost:8080/api/v1";
+const API = "http://localhost:8081/api/v1";
 
 export default function AdminDashboard({ token, onLogout }) {
   const [adminView, setAdminView] = useState("overview");

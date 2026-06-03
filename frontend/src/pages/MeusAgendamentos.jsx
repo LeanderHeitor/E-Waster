@@ -37,8 +37,8 @@ function MeusAgendamentos({ agendamentos, onAgendar, onCancelar }) {
 
   // Mapeia os pontos tratando o status em maiúsculo vindo do Back-end
   const totalPontosGerais = agendamentos
-    .filter((a) => a.status !== "CANCELADO" && a.status !== "Cancelado")
-    .reduce((sum, a) => sum + (a.totalPts || a.totalPontos || 0), 0);
+  .filter((a) => a.status === "REALIZADO")
+  .reduce((sum, a) => sum + (a.totalPts || a.totalPontos || 0), 0);
 
   const ordenados = agendamentos.slice().reverse();
 
@@ -70,8 +70,16 @@ function MeusAgendamentos({ agendamentos, onAgendar, onCancelar }) {
           const cancelando = confirmandoCancelar === agd.id;
 
           // Trata tanto maiúsculo do back quanto o textual do front antigo
-          const isCancelado = agd.status === "CANCELADO" || agd.status === "Cancelado";
-          const podeCancelar = agd.status === "PENDENTE" || agd.status === "Pendente";
+          const status = agd.status;
+
+const isCancelado =
+  status === "CANCELADO" ||
+  status === "Cancelado" ||
+  status === "NAO_COMPARECEU";
+
+const isRealizado = status === "REALIZADO";
+
+const podeCancelar = status === "PENDENTE" || status === "Pendente";
 
           const pontosDoAgendamento = agd.totalPts || agd.totalPontos || 0;
 

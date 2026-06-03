@@ -3,16 +3,18 @@ import { COLORS } from "../styles/colors";
 
 function Sidebar({ screen, onNavigate, usuario, onLogout }) {
   const navItems = [
-    { id: "home", label: "Inicio" },
-    { id: "agendamento", label: "Agendar Coleta" },
-    { id: "meus-agendamentos", label: "Meus Agendamentos" },
-    { id: "ranking", label: "Ranking" },
-  ];
+  { id: "home", label: "Inicio" },
+  { id: "agendamento", label: "Agendar Coleta" },
+  { id: "meus-agendamentos", label: "Meus Agendamentos" },
+  { id: "ranking", label: "Ranking" },
+  { id: "perfil", label: "Meu Perfil" },
+];
 
   const activeGroup = screen.startsWith("agendamento") ? "agendamento"
-    : screen.startsWith("meus-agendamentos") ? "meus-agendamentos"
-    : screen.startsWith("ranking") ? "ranking"
-    : "home";
+  : screen.startsWith("meus-agendamentos") ? "meus-agendamentos"
+  : screen.startsWith("ranking") ? "ranking"
+  : screen.startsWith("perfil") ? "perfil"
+  : "home";
 
   return (
     <div style={{ width: 240, minHeight: "100vh", background: COLORS.sidebarBg, display: "flex", flexDirection: "column", flexShrink: 0 }}>
