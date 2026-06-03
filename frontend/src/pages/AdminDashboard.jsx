@@ -9,6 +9,7 @@ import {
   XCircle,
   ArrowLeft,
   CalendarPlus,
+  Home,
 } from "lucide-react";
 
 const API = "http://localhost:8081/api/v1";
@@ -346,13 +347,25 @@ export default function AdminDashboard({ token, onLogout }) {
 
         {adminView === "usuarios" && usuarioSelecionado && (
           <Box sx={cardStyle}>
-            <Button
-              onClick={() => setUsuarioSelecionadoId(null)}
-              startIcon={<ArrowLeft size={18} />}
-              sx={{ color: "#A5D6A7", textTransform: "none", marginBottom: "20px" }}
-            >
-              Voltar para usuários
-            </Button>
+            <Box sx={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "20px" }}>
+              <Button
+                onClick={() => setUsuarioSelecionadoId(null)}
+                startIcon={<ArrowLeft size={18} />}
+                sx={{ color: "#A5D6A7", textTransform: "none" }}
+              >
+                Voltar para usuários
+              </Button>
+              <Button
+                onClick={() => {
+                  setUsuarioSelecionadoId(null);
+                  setAdminView("overview");
+                }}
+                startIcon={<Home size={18} />}
+                sx={{ color: "#A5D6A7", textTransform: "none" }}
+              >
+                Painel principal
+              </Button>
+            </Box>
 
             <Typography sx={{ fontWeight: 800, fontSize: "1.4rem" }}>
               {usuarioSelecionado.nome}
