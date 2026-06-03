@@ -10,6 +10,8 @@ import br.ufrpe.ewaster.user.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Service
 public class AgendamentoService {
 
@@ -34,6 +36,11 @@ public class AgendamentoService {
         // 1. Check de existência do Slot
         SlotColeta slot = slotColetaRepository.findById(request.slotId())
                 .orElseThrow(() -> new RuntimeException("Slot não encontrado"));
+
+        // 1.1. Slot cujo horário de início já passou não pode mais ser agendado.
+        if (LocalDateTime.of(slot.getData(), slot.getHorarioInicio()).isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Esse horário já passou e não pode mais ser agendado.");
+        }
 
         // 2. CHECK: COUNT < capacidade
         long atuais = agendamentoRepository.countAgendamentosAtivosPorSlot(request.slotId());

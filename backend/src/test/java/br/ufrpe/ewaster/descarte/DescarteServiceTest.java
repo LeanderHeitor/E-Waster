@@ -6,6 +6,7 @@ import br.ufrpe.ewaster.agendamento.AgendamentoService;
 import br.ufrpe.ewaster.agendamento.StatusAgendamento;
 import br.ufrpe.ewaster.agendamento.dto.AgendamentoItemRequest;
 import br.ufrpe.ewaster.agendamento.dto.AgendamentoRequest;
+import br.ufrpe.ewaster.slot.SlotColeta;
 import br.ufrpe.ewaster.slot.SlotColetaRepository;
 import br.ufrpe.ewaster.tiporesiduo.TipoResiduo;
 import br.ufrpe.ewaster.tiporesiduo.TipoResiduoRepository;
@@ -17,6 +18,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -34,8 +37,15 @@ class DescarteServiceTest {
     @Autowired TipoResiduoRepository tipoResiduoRepository;
     @Autowired UserRepository userRepository;
 
+    // Slot sempre futuro: não depende do seed (que vence) e passa na trava de "horário já passou".
     private Integer primeiroSlotId() {
-        return slotRepository.findAllByAtivoTrueOrderByDataAscHorarioInicioAsc().get(0).getId();
+        SlotColeta s = new SlotColeta();
+        s.setData(LocalDate.now().plusDays(7));
+        s.setHorarioInicio(LocalTime.of(8, 0));
+        s.setHorarioFim(LocalTime.of(12, 0));
+        s.setCapacidadeMaxima(5);
+        s.setAtivo(true);
+        return slotRepository.save(s).getId();
     }
 
     private TipoResiduo primeiroTipo() {

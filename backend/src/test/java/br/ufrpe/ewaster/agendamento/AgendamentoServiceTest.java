@@ -13,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -34,8 +36,24 @@ class AgendamentoServiceTest {
         return userRepository.save(new User("Teste", email, "x"));
     }
 
+    // Cria sempre um slot no futuro: não depende das datas fixas do seed (que vencem)
+    // e satisfaz a nova trava de "horário já passou" no criarAgendamento.
     private Integer primeiroSlotId() {
-        return slotRepository.findAllByAtivoTrueOrderByDataAscHorarioInicioAsc().get(0).getId();
+        return novoSlot(LocalDate.now().plusDays(7));
+    }
+
+    private Integer slotPassadoId() {
+        return novoSlot(LocalDate.now().minusDays(1));
+    }
+
+    private Integer novoSlot(LocalDate data) {
+        SlotColeta s = new SlotColeta();
+        s.setData(data);
+        s.setHorarioInicio(LocalTime.of(8, 0));
+        s.setHorarioFim(LocalTime.of(12, 0));
+        s.setCapacidadeMaxima(5);
+        s.setAtivo(true);
+        return slotRepository.save(s).getId();
     }
 
     private Integer primeiroTipoId() {
@@ -82,6 +100,13 @@ class AgendamentoServiceTest {
     }
 
     @Test
+    void criar_slotPassado_lancaErro() {
+        novoUsuario("passado@teste.dev");
+        assertThrows(RuntimeException.class,
+                () -> service.criarAgendamento(reqComUmItem(slotPassadoId()), "passado@teste.dev"));
+    }
+
+    @Test
     void cancelar_peloDono_marcaComoCancelado() {
         novoUsuario("dono1@teste.dev");
         Agendamento ag = service.criarAgendamento(reqComUmItem(primeiroSlotId()), "dono1@teste.dev");
@@ -107,5 +132,45 @@ class AgendamentoServiceTest {
     void cancelar_inexistente_lancaErro() {
         assertThrows(RuntimeException.class,
                 () -> service.cancelarAgendamento(999999, "qualquer@teste.dev"));
+    }
+
+    // ===== Recusa pelo admin (PENDENTE -> NAO_COMPARECEU, sem pontuar) =====
+
+    @Test
+    void recusar_pendente_marcaNaoCompareceu() {
+        novoUsuario("recusa1@teste.dev");
+        Agendamento ag = service.criarAgendamento(reqComUmItem(primeiroSlotId()), "recusa1@teste.dev");
+
+        service.recusarAgendamento(ag.getId());
+
+        assertEquals(StatusAgendamento.NAO_COMPARECEU,
+                agendamentoRepository.findById(ag.getId()).orElseThrow().getStatus());
+    }
+
+    @Test
+    void recusar_naoSomaPontos() {
+        novoUsuario("recusa2@teste.dev");
+        Agendamento ag = service.criarAgendamento(reqComUmItem(primeiroSlotId()), "recusa2@teste.dev");
+
+        service.recusarAgendamento(ag.getId());
+
+        int pontos = userRepository.findByEmail("recusa2@teste.dev").orElseThrow().getPontuacaoTotal();
+        assertEquals(0, pontos, "recusar não pode pontuar o usuário");
+    }
+
+    @Test
+    void recusar_naoPendente_lancaErro_eNaoMuda() {
+        novoUsuario("recusa3@teste.dev");
+        Agendamento ag = service.criarAgendamento(reqComUmItem(primeiroSlotId()), "recusa3@teste.dev");
+        service.cancelarAgendamento(ag.getId(), "recusa3@teste.dev"); // sai de PENDENTE
+
+        assertThrows(RuntimeException.class, () -> service.recusarAgendamento(ag.getId()));
+        assertEquals(StatusAgendamento.CANCELADO,
+                agendamentoRepository.findById(ag.getId()).orElseThrow().getStatus());
+    }
+
+    @Test
+    void recusar_inexistente_lancaErro() {
+        assertThrows(RuntimeException.class, () -> service.recusarAgendamento(999999));
     }
 }

@@ -1,7 +1,5 @@
-package br.ufrpe.ewaster.descarte;
+package br.ufrpe.ewaster.agendamento;
 
-import br.ufrpe.ewaster.agendamento.Agendamento;
-import br.ufrpe.ewaster.agendamento.AgendamentoService;
 import br.ufrpe.ewaster.agendamento.dto.AgendamentoItemRequest;
 import br.ufrpe.ewaster.agendamento.dto.AgendamentoRequest;
 import br.ufrpe.ewaster.auth.service.JwtService;
@@ -16,7 +14,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,14 +22,14 @@ import java.time.LocalTime;
 import java.util.List;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// Cobre a AUTORIZAÇÃO das rotas admin: só ADMIN pode registrar descarte / listar usuários.
+// Cobre a AUTORIZAÇÃO das rotas admin de agendamento: só ADMIN recusa / lista pendentes.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional // rollback automatico
-class DescarteControllerTest {
+class AgendamentoControllerTest {
 
     @Autowired MockMvc mvc;
     @Autowired JwtService jwtService;
@@ -67,51 +64,45 @@ class DescarteControllerTest {
     }
 
     @Test
-    void postDescartes_semToken_negado() throws Exception {
-        mvc.perform(post("/api/v1/descartes")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"agendamentoId\":1}"))
+    void recusar_semToken_negado() throws Exception {
+        mvc.perform(patch("/api/v1/agendamentos/1/recusar"))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    void postDescartes_usuarioComum_negado() throws Exception {
-        String token = tokenDe("comum@teste.dev", TipoUsuario.USUARIO);
+    void recusar_usuarioComum_negado() throws Exception {
+        String token = tokenDe("comum.recusa@teste.dev", TipoUsuario.USUARIO);
 
-        mvc.perform(post("/api/v1/descartes")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"agendamentoId\":1}"))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void postDescartes_admin_criado() throws Exception {
-        String adminToken = tokenDe("admin.ctrl@teste.dev", TipoUsuario.ADMIN);
-        userRepository.save(new User("Dono", "dono.ctrl@teste.dev", "x"));
-        Integer agId = agendamentoPendenteDe("dono.ctrl@teste.dev");
-
-        mvc.perform(post("/api/v1/descartes")
-                        .header("Authorization", "Bearer " + adminToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"agendamentoId\":" + agId + "}"))
-                .andExpect(status().isCreated());
-    }
-
-    @Test
-    void getUsuarios_usuarioComum_negado() throws Exception {
-        String token = tokenDe("comum2@teste.dev", TipoUsuario.USUARIO);
-
-        mvc.perform(get("/api/v1/usuarios")
+        mvc.perform(patch("/api/v1/agendamentos/1/recusar")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    void getUsuarios_admin_ok() throws Exception {
-        String adminToken = tokenDe("admin2.ctrl@teste.dev", TipoUsuario.ADMIN);
+    void recusar_admin_ok() throws Exception {
+        String adminToken = tokenDe("admin.recusa@teste.dev", TipoUsuario.ADMIN);
+        userRepository.save(new User("Dono", "dono.recusa@teste.dev", "x"));
+        Integer agId = agendamentoPendenteDe("dono.recusa@teste.dev");
 
-        mvc.perform(get("/api/v1/usuarios")
+        mvc.perform(patch("/api/v1/agendamentos/" + agId + "/recusar")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void pendentes_usuarioComum_negado() throws Exception {
+        String token = tokenDe("comum.pend@teste.dev", TipoUsuario.USUARIO);
+
+        mvc.perform(get("/api/v1/agendamentos/pendentes")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void pendentes_admin_ok() throws Exception {
+        String adminToken = tokenDe("admin.pend@teste.dev", TipoUsuario.ADMIN);
+
+        mvc.perform(get("/api/v1/agendamentos/pendentes")
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk());
     }
