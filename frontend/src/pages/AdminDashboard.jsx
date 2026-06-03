@@ -8,6 +8,7 @@ import {
   CheckCircle,
   XCircle,
   ArrowLeft,
+  CalendarPlus,
 } from "lucide-react";
 
 const API = "http://localhost:8080/api/v1";
@@ -20,6 +21,17 @@ export default function AdminDashboard({ token, onLogout }) {
   const [pendentes, setPendentes] = useState([]); // agendamentos PENDENTE (todos os usuários)
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
+
+  // Estado da tela de criação de horários (vagas de coleta).
+  const [slots, setSlots] = useState([]);
+  const [novoSlot, setNovoSlot] = useState({
+    data: "",
+    horarioInicio: "",
+    horarioFim: "",
+    capacidadeMaxima: 5,
+  });
+  const [slotMsg, setSlotMsg] = useState(null); // { tipo: "ok" | "erro", texto }
+  const [salvandoSlot, setSalvandoSlot] = useState(false);
 
   // Busca usuários + agendamentos pendentes reais do backend (rotas ADMIN).
   const carregar = useCallback(async () => {
@@ -51,6 +63,24 @@ export default function AdminDashboard({ token, onLogout }) {
   useEffect(() => {
     carregar();
   }, [carregar]);
+
+  // Lista os horários existentes (mesmo endpoint que o usuário comum consome).
+  const carregarSlots = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API}/slots`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) setSlots(await res.json());
+    } catch {
+      // a tela de criação continua utilizável mesmo sem a lista
+    }
+  }, [token]);
+
+  // Carrega os horários ao abrir a tela de criação.
+  useEffect(() => {
+    if (adminView === "horarios") carregarSlots();
+  }, [adminView, carregarSlots]);
 
   // Lista de usuários comuns (não mostra a conta admin).
   const usuariosComuns = usuarios.filter((u) => u.tipo !== "ADMIN");
@@ -85,6 +115,48 @@ export default function AdminDashboard({ token, onLogout }) {
     }
   };
 
+  // Cria um novo horário de coleta. As validações pesadas (conflito, data passada)
+  // são feitas no backend; aqui só evitamos requisições obviamente inválidas.
+  const criarSlot = async (e) => {
+    e.preventDefault();
+    setSlotMsg(null);
+
+    if (!novoSlot.data || !novoSlot.horarioInicio || !novoSlot.horarioFim) {
+      setSlotMsg({ tipo: "erro", texto: "Preencha data, início e fim." });
+      return;
+    }
+    if (novoSlot.horarioFim <= novoSlot.horarioInicio) {
+      setSlotMsg({ tipo: "erro", texto: "O horário de fim deve ser maior que o de início." });
+      return;
+    }
+
+    setSalvandoSlot(true);
+    try {
+      const res = await fetch(`${API}/slots`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          data: novoSlot.data,
+          horarioInicio: novoSlot.horarioInicio,
+          horarioFim: novoSlot.horarioFim,
+          capacidadeMaxima: Number(novoSlot.capacidadeMaxima),
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+
+      setSlotMsg({ tipo: "ok", texto: "Horário criado com sucesso." });
+      setNovoSlot({ data: "", horarioInicio: "", horarioFim: "", capacidadeMaxima: 5 });
+      await carregarSlots();
+    } catch (err) {
+      setSlotMsg({ tipo: "erro", texto: err.message || "Erro ao criar horário." });
+    } finally {
+      setSalvandoSlot(false);
+    }
+  };
+
+  // Corta os segundos de "08:00:00" -> "08:00".
+  const formatarHora = (h) => (h ? String(h).substring(0, 5) : "");
+
   const cards = [
     { title: "Usuários cadastrados", value: usuariosComuns.length, icon: Users },
     { title: "Agendamentos pendentes", value: pendentes.length, icon: Megaphone },
@@ -97,6 +169,23 @@ export default function AdminDashboard({ token, onLogout }) {
     borderRadius: "22px",
     padding: "28px",
     backdropFilter: "blur(12px)",
+  };
+
+  const inputStyle = {
+    width: "100%",
+    padding: "10px 12px",
+    borderRadius: "10px",
+    border: "1px solid rgba(165,214,167,0.35)",
+    background: "rgba(255,255,255,0.92)",
+    color: "#14241a",
+    fontSize: "0.95rem",
+    boxSizing: "border-box",
+  };
+
+  const labelStyle = {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: "0.8rem",
+    marginBottom: "6px",
   };
 
   return (
@@ -175,21 +264,39 @@ export default function AdminDashboard({ token, onLogout }) {
                 Ações administrativas
               </Typography>
 
-              <Button
-                onClick={() => setAdminView("usuarios")}
-                variant="outlined"
-                startIcon={<Users size={18} />}
-                sx={{
-                  justifyContent: "flex-start",
-                  color: "#fff",
-                  borderColor: "rgba(165,214,167,0.28)",
-                  borderRadius: "12px",
-                  textTransform: "none",
-                  padding: "12px 14px",
-                }}
-              >
-                Visualizar usuários e validar agendamentos
-              </Button>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                <Button
+                  onClick={() => setAdminView("usuarios")}
+                  variant="outlined"
+                  startIcon={<Users size={18} />}
+                  sx={{
+                    justifyContent: "flex-start",
+                    color: "#fff",
+                    borderColor: "rgba(165,214,167,0.28)",
+                    borderRadius: "12px",
+                    textTransform: "none",
+                    padding: "12px 14px",
+                  }}
+                >
+                  Visualizar usuários e validar agendamentos
+                </Button>
+
+                <Button
+                  onClick={() => setAdminView("horarios")}
+                  variant="outlined"
+                  startIcon={<CalendarPlus size={18} />}
+                  sx={{
+                    justifyContent: "flex-start",
+                    color: "#fff",
+                    borderColor: "rgba(165,214,167,0.28)",
+                    borderRadius: "12px",
+                    textTransform: "none",
+                    padding: "12px 14px",
+                  }}
+                >
+                  Criar horário de coleta (vagas)
+                </Button>
+              </Box>
             </Box>
           </>
         )}
@@ -305,6 +412,144 @@ export default function AdminDashboard({ token, onLogout }) {
                         Recusar
                       </Button>
                     </Box>
+                  </Box>
+                ))}
+              </Box>
+            )}
+          </Box>
+        )}
+
+        {adminView === "horarios" && (
+          <Box sx={cardStyle}>
+            <Button
+              onClick={() => {
+                setAdminView("overview");
+                setSlotMsg(null);
+              }}
+              startIcon={<ArrowLeft size={18} />}
+              sx={{ color: "#A5D6A7", textTransform: "none", marginBottom: "20px" }}
+            >
+              Voltar ao painel
+            </Button>
+
+            <Typography sx={{ fontWeight: 800, fontSize: "1.4rem", marginBottom: "6px" }}>
+              Criar horário de coleta
+            </Typography>
+            <Typography sx={{ color: "rgba(255,255,255,0.68)", marginBottom: "22px" }}>
+              Defina uma nova janela de coleta. O sistema bloqueia datas passadas e horários
+              que se sobreponham a um já existente na mesma data.
+            </Typography>
+
+            <Box
+              component="form"
+              onSubmit={criarSlot}
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+                gap: "14px",
+                alignItems: "end",
+                marginBottom: "16px",
+              }}
+            >
+              <Box>
+                <Typography sx={labelStyle}>Data</Typography>
+                <input
+                  type="date"
+                  value={novoSlot.data}
+                  onChange={(e) => setNovoSlot({ ...novoSlot, data: e.target.value })}
+                  style={inputStyle}
+                />
+              </Box>
+              <Box>
+                <Typography sx={labelStyle}>Início</Typography>
+                <input
+                  type="time"
+                  value={novoSlot.horarioInicio}
+                  onChange={(e) => setNovoSlot({ ...novoSlot, horarioInicio: e.target.value })}
+                  style={inputStyle}
+                />
+              </Box>
+              <Box>
+                <Typography sx={labelStyle}>Fim</Typography>
+                <input
+                  type="time"
+                  value={novoSlot.horarioFim}
+                  onChange={(e) => setNovoSlot({ ...novoSlot, horarioFim: e.target.value })}
+                  style={inputStyle}
+                />
+              </Box>
+              <Box>
+                <Typography sx={labelStyle}>Capacidade</Typography>
+                <input
+                  type="number"
+                  min={1}
+                  value={novoSlot.capacidadeMaxima}
+                  onChange={(e) => setNovoSlot({ ...novoSlot, capacidadeMaxima: e.target.value })}
+                  style={inputStyle}
+                />
+              </Box>
+              <Button
+                type="submit"
+                disabled={salvandoSlot}
+                startIcon={<CalendarPlus size={18} />}
+                sx={{
+                  background: "#2e7d32",
+                  color: "#fff",
+                  borderRadius: "12px",
+                  textTransform: "none",
+                  fontWeight: 700,
+                  padding: "10px 16px",
+                  height: "44px",
+                  "&:hover": { background: "#1b5e20" },
+                  "&.Mui-disabled": { background: "rgba(46,125,50,0.5)", color: "rgba(255,255,255,0.6)" },
+                }}
+              >
+                {salvandoSlot ? "Criando..." : "Criar"}
+              </Button>
+            </Box>
+
+            {slotMsg && (
+              <Typography
+                sx={{
+                  color: slotMsg.tipo === "ok" ? "#A5D6A7" : "#EF9A9A",
+                  fontWeight: 600,
+                  marginBottom: "20px",
+                }}
+              >
+                {slotMsg.tipo === "ok" ? "✅ " : "⚠️ "}
+                {slotMsg.texto}
+              </Typography>
+            )}
+
+            <Typography sx={{ fontWeight: 800, fontSize: "1.1rem", marginTop: "10px", marginBottom: "14px" }}>
+              Horários cadastrados
+            </Typography>
+
+            {slots.length === 0 ? (
+              <Typography sx={{ color: "rgba(255,255,255,0.72)" }}>
+                Nenhum horário cadastrado ainda.
+              </Typography>
+            ) : (
+              <Box sx={{ display: "grid", gap: "10px" }}>
+                {slots.map((s) => (
+                  <Box
+                    key={s.id}
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(165,214,167,0.20)",
+                      borderRadius: "12px",
+                      padding: "12px 16px",
+                    }}
+                  >
+                    <Typography sx={{ fontWeight: 700 }}>
+                      📅 {s.data} • {formatarHora(s.horarioInicio)} às {formatarHora(s.horarioFim)}
+                    </Typography>
+                    <Typography sx={{ color: "rgba(255,255,255,0.7)", fontSize: "0.88rem" }}>
+                      {s.vagasDisponiveis}/{s.capacidadeMaxima} vagas
+                    </Typography>
                   </Box>
                 ))}
               </Box>

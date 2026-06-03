@@ -55,6 +55,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/usuarios").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/agendamentos/pendentes").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/agendamentos/*/recusar").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/slots").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
