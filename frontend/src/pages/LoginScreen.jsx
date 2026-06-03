@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 
 // 🚀 PROPRIEDADES ALINHADAS COM O APP.JSX
 export default function LoginScreen({ onIrCadastro, onIrLanding }) {
-  const { login } = useAuth();
+  const { login, logout } = useAuth();
   const [loginData, setLoginData] = useState({
     email: '',
     senha: ''
@@ -24,7 +24,15 @@ export default function LoginScreen({ onIrCadastro, onIrLanding }) {
 
     setCarregando(true);
     try {
-      await login(loginData.email.trim(), loginData.senha);
+      const usuario = await login(loginData.email.trim(), loginData.senha);
+
+      // Admin não entra pela tela de usuário comum. Mensagem genérica de propósito:
+      // não revela que a conta existe nem que é admin (evita enumeração de contas).
+      if (usuario?.tipo === "ADMIN") {
+        logout();
+        setErro("E-mail ou senha inválidos.");
+        return;
+      }
       // ao logar, o AuthContext atualiza `autenticado` e o App.jsx
       // troca automaticamente para as telas privadas.
     } catch (err) {
@@ -234,6 +242,19 @@ export default function LoginScreen({ onIrCadastro, onIrLanding }) {
                   }}
                 >
                   Cadastre-se
+                </Link>
+              </Typography>
+              <Typography sx={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '8px' }}>
+                <Link
+                  component="button" type="button" onClick={onIrLanding}
+                  sx={{
+                    color: '#2E7D32',
+                    fontWeight: 600,
+                    textDecoration: 'none',
+                    '&:hover': { textDecoration: 'underline' }
+                  }}
+                >
+                  ← Voltar ao início
                 </Link>
               </Typography>
             </Box>
