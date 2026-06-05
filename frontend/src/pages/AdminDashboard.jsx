@@ -83,6 +83,8 @@ export default function AdminDashboard({ token, onLogout }) {
     if (adminView === "horarios") carregarSlots();
   }, [adminView, carregarSlots]);
 
+
+
   // Lista de usuários comuns (não mostra a conta admin).
   const usuariosComuns = usuarios.filter((u) => u.tipo !== "ADMIN");
   const pendentesDoUsuario = (id) => pendentes.filter((p) => p.usuario?.id === id);
@@ -154,6 +156,162 @@ export default function AdminDashboard({ token, onLogout }) {
       setSalvandoSlot(false);
     }
   };
+
+  const [campanhas, setCampanhas] = useState([]);
+  const [campanhaEditandoId, setCampanhaEditandoId] = useState(null);
+
+const [novaCampanha, setNovaCampanha] = useState({
+  nome: "",
+  dataInicio: "",
+  dataFim: "",
+});
+
+const [campanhaMsg, setCampanhaMsg] = useState(null);
+
+const [salvandoCampanha, setSalvandoCampanha] = useState(false);
+
+const carregarCampanhas = useCallback(async () => {
+  if (!token) return;
+
+  try {
+    const res = await fetch(`${API}/campanhas`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (res.ok) {
+      setCampanhas(await res.json());
+    }
+  } catch {
+    // silencioso
+  }
+}, [token]);
+
+
+useEffect(() => {
+  if (adminView === "campanhas") {
+    carregarCampanhas();
+  }
+}, [adminView, carregarCampanhas]);
+
+const salvarCampanha = async (e) => {
+  e.preventDefault();
+  setCampanhaMsg(null);
+
+  if (!novaCampanha.nome || !novaCampanha.dataInicio || !novaCampanha.dataFim) {
+    setCampanhaMsg({ tipo: "erro", texto: "Preencha nome, início e fim." });
+    return;
+  }
+
+  if (novaCampanha.dataFim < novaCampanha.dataInicio) {
+    setCampanhaMsg({ tipo: "erro", texto: "A data de fim não pode ser anterior à data de início." });
+    return;
+  }
+
+  setSalvandoCampanha(true);
+
+  try {
+    const url = campanhaEditandoId
+      ? `${API}/campanhas/${campanhaEditandoId}`
+      : `${API}/campanhas`;
+
+    const metodo = campanhaEditandoId ? "PUT" : "POST";
+
+    const res = await fetch(url, {
+      method: metodo,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(novaCampanha),
+    });
+
+    if (!res.ok) {
+      throw new Error(await res.text());
+    }
+
+    setCampanhaMsg({
+      tipo: "ok",
+      texto: campanhaEditandoId
+        ? "Campanha atualizada com sucesso."
+        : "Campanha criada com sucesso.",
+    });
+
+    setNovaCampanha({
+      nome: "",
+      dataInicio: "",
+      dataFim: "",
+    });
+
+    setCampanhaEditandoId(null);
+
+    await carregarCampanhas();
+  } catch (err) {
+    setCampanhaMsg({
+      tipo: "erro",
+      texto: err.message || "Erro ao salvar campanha.",
+    });
+  } finally {
+    setSalvandoCampanha(false);
+  }
+};
+
+const iniciarEdicaoCampanha = (campanha) => {
+  setCampanhaEditandoId(campanha.id);
+
+  setNovaCampanha({
+    nome: campanha.nome,
+    dataInicio: campanha.dataInicio,
+    dataFim: campanha.dataFim,
+  });
+
+  setCampanhaMsg({
+    tipo: "ok",
+    texto: "Editando campanha selecionada.",
+  });
+};
+const cancelarEdicaoCampanha = () => {
+  setCampanhaEditandoId(null);
+
+  setNovaCampanha({
+    nome: "",
+    dataInicio: "",
+    dataFim: "",
+  });
+
+  setCampanhaMsg(null);
+};
+const excluirCampanha = async (id) => {
+  const confirmar = window.confirm("Tem certeza que deseja excluir esta campanha?");
+
+  if (!confirmar) return;
+
+  try {
+    const res = await fetch(`${API}/campanhas/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error(await res.text());
+    }
+
+    setCampanhaMsg({
+      tipo: "ok",
+      texto: "Campanha excluída com sucesso.",
+    });
+
+    await carregarCampanhas();
+  } catch (err) {
+    setCampanhaMsg({
+      tipo: "erro",
+      texto: err.message || "Erro ao excluir campanha.",
+    });
+  }
+};
 
   // Corta os segundos de "08:00:00" -> "08:00".
   const formatarHora = (h) => (h ? String(h).substring(0, 5) : "");
@@ -297,6 +455,21 @@ export default function AdminDashboard({ token, onLogout }) {
                 >
                   Criar horário de coleta (vagas)
                 </Button>
+                <Button
+  onClick={() => setAdminView("campanhas")}
+  variant="outlined"
+  startIcon={<Megaphone size={18} />}
+  sx={{
+    justifyContent: "flex-start",
+    color: "#fff",
+    borderColor: "rgba(165,214,167,0.28)",
+    borderRadius: "12px",
+    textTransform: "none",
+    padding: "12px 14px",
+  }}
+>
+  Gerenciar campanhas
+</Button>
               </Box>
             </Box>
           </>
@@ -569,6 +742,202 @@ export default function AdminDashboard({ token, onLogout }) {
             )}
           </Box>
         )}
+      {adminView === "campanhas" && (
+  <Box sx={cardStyle}>
+    <Button
+      onClick={() => {
+        setAdminView("overview");
+        setCampanhaMsg(null);
+      }}
+      startIcon={<ArrowLeft size={18} />}
+      sx={{ color: "#A5D6A7", textTransform: "none", marginBottom: "20px" }}
+    >
+      Voltar ao painel
+    </Button>
+
+    <Typography sx={{ fontWeight: 800, fontSize: "1.4rem", marginBottom: "6px" }}>
+      Gerenciar campanhas
+    </Typography>
+
+    <Typography sx={{ color: "rgba(255,255,255,0.68)", marginBottom: "22px" }}>
+      Cadastre campanhas ambientais com período de início e fim definidos.
+    </Typography>
+
+    <Box
+      component="form"
+      onSubmit={salvarCampanha}
+      sx={{
+        display: "grid",
+        gridTemplateColumns: "2fr 1fr 1fr auto",
+        gap: "14px",
+        alignItems: "end",
+        marginBottom: "16px",
+      }}
+    >
+      <Box>
+        <Typography sx={labelStyle}>Nome da campanha</Typography>
+        <input
+          type="text"
+          value={novaCampanha.nome}
+          onChange={(e) => setNovaCampanha({ ...novaCampanha, nome: e.target.value })}
+          placeholder=""
+          style={inputStyle}
+        />
+      </Box>
+
+      <Box>
+        <Typography sx={labelStyle}>Início</Typography>
+        <input
+          type="date"
+          value={novaCampanha.dataInicio}
+          onChange={(e) => setNovaCampanha({ ...novaCampanha, dataInicio: e.target.value })}
+          style={inputStyle}
+        />
+      </Box>
+
+      <Box>
+        <Typography sx={labelStyle}>Fim</Typography>
+        <input
+          type="date"
+          value={novaCampanha.dataFim}
+          onChange={(e) => setNovaCampanha({ ...novaCampanha, dataFim: e.target.value })}
+          style={inputStyle}
+        />
+      </Box>
+
+      <Button
+        type="submit"
+        disabled={salvandoCampanha}
+        startIcon={<Megaphone size={18} />}
+        sx={{
+          background: "#2e7d32",
+          color: "#fff",
+          borderRadius: "12px",
+          textTransform: "none",
+          fontWeight: 700,
+          padding: "10px 16px",
+          height: "44px",
+          "&:hover": { background: "#1b5e20" },
+          "&.Mui-disabled": {
+            background: "rgba(46,125,50,0.5)",
+            color: "rgba(255,255,255,0.6)",
+          },
+        }}
+      >
+        {salvandoCampanha
+  ? "Salvando..."
+  : campanhaEditandoId
+    ? "Salvar alterações"
+    : "Criar"}
+      </Button>
+      {campanhaEditandoId && (
+  <Button
+    onClick={cancelarEdicaoCampanha}
+    sx={{
+      marginLeft: "12px",
+      color: "#EF9A9A",
+      border: "1px solid rgba(239,154,154,0.45)",
+      borderRadius: "10px",
+      textTransform: "none",
+      fontWeight: 700,
+      padding: "10px 16px",
+    }}
+  >
+    Cancelar edição
+  </Button>
+)}
+    </Box>
+
+    {campanhaMsg && (
+      <Typography
+        sx={{
+          color: campanhaMsg.tipo === "ok" ? "#A5D6A7" : "#EF9A9A",
+          fontWeight: 600,
+          marginBottom: "20px",
+        }}
+      >
+        {campanhaMsg.tipo === "ok" ? "✅ " : "⚠️ "}
+        {campanhaMsg.texto}
+      </Typography>
+    )}
+
+    <Typography sx={{ fontWeight: 800, fontSize: "1.1rem", marginTop: "10px", marginBottom: "14px" }}>
+      Campanhas cadastradas
+    </Typography>
+
+    {campanhas.length === 0 ? (
+      <Typography sx={{ color: "rgba(255,255,255,0.72)" }}>
+        Nenhuma campanha cadastrada ainda.
+      </Typography>
+    ) : (
+      <Box sx={{ display: "grid", gap: "10px" }}>
+        {campanhas.map((c) => (
+          <Box
+            key={c.id}
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(165,214,167,0.20)",
+              borderRadius: "12px",
+              padding: "12px 16px",
+            }}
+          >
+            <Box>
+              <Typography sx={{ fontWeight: 700 }}>{c.nome}</Typography>
+              <Typography sx={{ color: "rgba(255,255,255,0.65)", fontSize: "0.85rem" }}>
+                {c.dataInicio} até {c.dataFim}
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: "flex", alignItems: "center", gap: "12px" }}>
+  <Typography
+    sx={{
+      color: c.ativa ? "#A5D6A7" : "#EF9A9A",
+      fontSize: "0.8rem",
+      fontWeight: 800,
+    }}
+  >
+    {c.ativa ? "ATIVA" : "INATIVA"}
+  </Typography>
+
+  <Button
+  onClick={() => iniciarEdicaoCampanha(c)}
+  sx={{
+    color: "#A5D6A7",
+    border: "1px solid rgba(165,214,167,0.45)",
+    borderRadius: "10px",
+    textTransform: "none",
+    fontWeight: 700,
+    padding: "6px 10px",
+    fontSize: "0.78rem",
+  }}
+>
+  Editar
+</Button>
+
+  <Button
+    onClick={() => excluirCampanha(c.id)}
+    sx={{
+      color: "#EF9A9A",
+      border: "1px solid rgba(239,154,154,0.45)",
+      borderRadius: "10px",
+      textTransform: "none",
+      fontWeight: 700,
+      padding: "6px 10px",
+      fontSize: "0.78rem",
+    }}
+  >
+    Excluir
+  </Button>
+</Box>
+          </Box>
+        ))}
+      </Box>
+    )}
+  </Box>
+)}
       </Box>
     </Box>
   );

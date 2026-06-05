@@ -15,6 +15,7 @@ import RankingPage from "./pages/RankingPage";
 import PerfilPage from "./pages/PerfilPage";
 import Toast from "./components/Toast";
 import { useAuth } from "./context/AuthContext";
+import CampanhasPage from "./pages/CampanhasPage";
 
 export default function App() {
   // Pegando o token direto do estado global do Contexto
@@ -268,6 +269,9 @@ const totalAgendamentosAtivos = agendamentosAtivos.length;
           {screen === "ranking" && (
             <RankingPage usuario={usuario} token={token} />
           )}
+          {screen === "campanhas" && (
+  <CampanhasPage token={token} />
+)}
           {screen === "perfil" && (
   <PerfilPage token={token} />
 )}

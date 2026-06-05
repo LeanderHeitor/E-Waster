@@ -7,12 +7,14 @@ function Sidebar({ screen, onNavigate, usuario, onLogout }) {
   { id: "agendamento", label: "Agendar Coleta" },
   { id: "meus-agendamentos", label: "Meus Agendamentos" },
   { id: "ranking", label: "Ranking" },
+  { id: "campanhas", label: "Campanhas" },
   { id: "perfil", label: "Meu Perfil" },
 ];
 
   const activeGroup = screen.startsWith("agendamento") ? "agendamento"
   : screen.startsWith("meus-agendamentos") ? "meus-agendamentos"
   : screen.startsWith("ranking") ? "ranking"
+  : screen.startsWith("campanhas") ? "campanhas"
   : screen.startsWith("perfil") ? "perfil"
   : "home";
 
