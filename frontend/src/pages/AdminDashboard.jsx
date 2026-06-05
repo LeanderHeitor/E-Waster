@@ -170,6 +170,9 @@ const [campanhaMsg, setCampanhaMsg] = useState(null);
 
 const [salvandoCampanha, setSalvandoCampanha] = useState(false);
 
+const [relatorioEngajamento, setRelatorioEngajamento] = useState(null);
+const [relatorioResiduos, setRelatorioResiduos] = useState(null);
+
 const carregarCampanhas = useCallback(async () => {
   if (!token) return;
 
@@ -188,12 +191,42 @@ const carregarCampanhas = useCallback(async () => {
   }
 }, [token]);
 
+const carregarRelatorios = useCallback(async () => {
+  if (!token) return;
+
+  try {
+    const headers = {
+      Authorization: `Bearer ${token}`,
+    };
+
+    const [engajamentoRes, residuosRes] = await Promise.all([
+      fetch(`${API}/relatorios/engajamento`, { headers }),
+      fetch(`${API}/relatorios/residuos`, { headers }),
+    ]);
+
+    if (engajamentoRes.ok) {
+      setRelatorioEngajamento(await engajamentoRes.json());
+    }
+
+    if (residuosRes.ok) {
+      setRelatorioResiduos(await residuosRes.json());
+    }
+  } catch {
+    // silencioso
+  }
+}, [token]);
 
 useEffect(() => {
   if (adminView === "campanhas") {
     carregarCampanhas();
   }
 }, [adminView, carregarCampanhas]);
+
+useEffect(() => {
+  if (adminView === "relatorios") {
+    carregarRelatorios();
+  }
+}, [adminView, carregarRelatorios]);
 
 const salvarCampanha = async (e) => {
   e.preventDefault();
@@ -469,6 +502,21 @@ const excluirCampanha = async (id) => {
   }}
 >
   Gerenciar campanhas
+</Button>
+<Button
+  onClick={() => setAdminView("relatorios")}
+  variant="outlined"
+  startIcon={<Recycle size={18} />}
+  sx={{
+    justifyContent: "flex-start",
+    color: "#fff",
+    borderColor: "rgba(165,214,167,0.28)",
+    borderRadius: "12px",
+    textTransform: "none",
+    padding: "12px 14px",
+  }}
+>
+  Relatórios administrativos
 </Button>
               </Box>
             </Box>
@@ -935,6 +983,151 @@ const excluirCampanha = async (id) => {
           </Box>
         ))}
       </Box>
+    )}
+  </Box>
+)}
+{adminView === "relatorios" && (
+  <Box sx={cardStyle}>
+    <Button
+      onClick={() => setAdminView("overview")}
+      startIcon={<ArrowLeft size={18} />}
+      sx={{ color: "#A5D6A7", textTransform: "none", marginBottom: "20px" }}
+    >
+      Voltar ao painel
+    </Button>
+
+    <Typography sx={{ fontWeight: 800, fontSize: "1.4rem", marginBottom: "6px" }}>
+      Relatórios administrativos
+    </Typography>
+
+    <Typography sx={{ color: "rgba(255,255,255,0.68)", marginBottom: "22px" }}>
+      Acompanhe os indicadores consolidados de participação, engajamento e resíduos coletados.
+    </Typography>
+
+    {!relatorioEngajamento || !relatorioResiduos ? (
+      <Typography sx={{ color: "rgba(255,255,255,0.72)" }}>
+        Carregando relatórios...
+      </Typography>
+    ) : (
+      <>
+        <Typography sx={{ fontWeight: 800, fontSize: "1.1rem", marginBottom: "14px" }}>
+          Participação e engajamento
+        </Typography>
+
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: "12px",
+            marginBottom: "28px",
+          }}
+        >
+          {[
+            ["Usuários", relatorioEngajamento.totalUsuarios],
+            ["Agendamentos", relatorioEngajamento.totalAgendamentos],
+            ["Pendentes", relatorioEngajamento.pendentes],
+            ["Realizados", relatorioEngajamento.realizados],
+            ["Cancelados", relatorioEngajamento.cancelados],
+            ["Não compareceu", relatorioEngajamento.naoCompareceu],
+            ["Pontos distribuídos", relatorioEngajamento.pontosDistribuidos],
+          ].map(([label, value]) => (
+            <Box
+              key={label}
+              sx={{
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(165,214,167,0.20)",
+                borderRadius: "14px",
+                padding: "16px",
+              }}
+            >
+              <Typography sx={{ color: "rgba(255,255,255,0.65)", fontSize: "0.85rem" }}>
+                {label}
+              </Typography>
+              <Typography sx={{ fontSize: "1.6rem", fontWeight: 800, marginTop: "6px" }}>
+                {value ?? 0}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+
+        <Typography sx={{ fontWeight: 800, fontSize: "1.1rem", marginBottom: "14px" }}>
+          Usuários e engajamento
+        </Typography>
+
+        <Box sx={{ display: "grid", gap: "10px", marginBottom: "28px" }}>
+          {(relatorioEngajamento.usuarios || []).map((u) => (
+            <Box
+              key={u.id}
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(165,214,167,0.20)",
+                borderRadius: "12px",
+                padding: "12px 16px",
+              }}
+            >
+              <Box>
+                <Typography sx={{ fontWeight: 700 }}>{u.nome}</Typography>
+                <Typography sx={{ color: "rgba(255,255,255,0.65)", fontSize: "0.85rem" }}>
+                  {u.email}
+                </Typography>
+              </Box>
+
+              <Typography sx={{ color: "#A5D6A7", fontWeight: 800 }}>
+                {u.pontuacaoTotal || 0} pts • {u.totalAgendamentos || 0} agendamento(s)
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+
+        <Typography sx={{ fontWeight: 800, fontSize: "1.1rem", marginBottom: "14px" }}>
+          Volumetria de resíduos por tipo
+        </Typography>
+
+        <Box
+          sx={{
+            background: "rgba(255,255,255,0.06)",
+            border: "1px solid rgba(165,214,167,0.20)",
+            borderRadius: "14px",
+            padding: "16px",
+            marginBottom: "14px",
+          }}
+        >
+          <Typography sx={{ color: "rgba(255,255,255,0.72)" }}>
+            Quantidade total: <strong>{relatorioResiduos.quantidadeTotal || 0}</strong>
+          </Typography>
+          <Typography sx={{ color: "rgba(255,255,255,0.72)" }}>
+            Pontos gerados: <strong>{relatorioResiduos.pontosGerados || 0}</strong>
+          </Typography>
+        </Box>
+
+        <Box sx={{ display: "grid", gap: "10px" }}>
+          {(relatorioResiduos.residuos || []).map((r) => (
+            <Box
+              key={r.tipoResiduo}
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(165,214,167,0.20)",
+                borderRadius: "12px",
+                padding: "12px 16px",
+              }}
+            >
+              <Typography sx={{ fontWeight: 700 }}>
+                {r.tipoResiduo}
+              </Typography>
+
+              <Typography sx={{ color: "#A5D6A7", fontWeight: 800 }}>
+                {r.quantidadeTotal || 0} unidade(s) • {r.pontosGerados || 0} pts
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+      </>
     )}
   </Box>
 )}
