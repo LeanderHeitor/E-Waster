@@ -7,8 +7,10 @@ import br.ufrpe.ewaster.agendamento.StatusAgendamento;
 import br.ufrpe.ewaster.user.User;
 import br.ufrpe.ewaster.user.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.time.LocalDate;
 import java.util.*;
 
 @RestController
@@ -21,6 +23,9 @@ public class RelatorioController {
 
     @Autowired
     private AgendamentoRepository agendamentoRepository;
+
+    @Autowired
+    private RelatorioService relatorioService;
 
     @GetMapping("/engajamento")
     public ResponseEntity<Map<String, Object>> relatorioEngajamento() {
@@ -125,5 +130,20 @@ public class RelatorioController {
         resposta.put("residuos", lista);
 
         return ResponseEntity.ok(resposta);
+    }
+
+    // RF15/RF16 — Relatorio que agrega descartes e pontos dentro de um periodo (datas inclusivas).
+    // Restrito a ADMIN no SecurityConfig (/api/v1/relatorios/**). Agregacao em RelatorioService.
+    @GetMapping("/descartes")
+    public ResponseEntity<?> relatorioDescartesPorPeriodo(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim) {
+
+        if (fim.isBefore(inicio)) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("erro", "A data final não pode ser anterior à data inicial."));
+        }
+
+        return ResponseEntity.ok(relatorioService.descartesPorPeriodo(inicio, fim));
     }
 }

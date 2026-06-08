@@ -173,6 +173,12 @@ const [salvandoCampanha, setSalvandoCampanha] = useState(false);
 const [relatorioEngajamento, setRelatorioEngajamento] = useState(null);
 const [relatorioResiduos, setRelatorioResiduos] = useState(null);
 
+// RF15/RF16 — relatório de descartes/pontos por período.
+const [periodo, setPeriodo] = useState({ inicio: "", fim: "" });
+const [relatorioDescartes, setRelatorioDescartes] = useState(null);
+const [carregandoDescartes, setCarregandoDescartes] = useState(false);
+const [descartesMsg, setDescartesMsg] = useState(null);
+
 const carregarCampanhas = useCallback(async () => {
   if (!token) return;
 
@@ -215,6 +221,37 @@ const carregarRelatorios = useCallback(async () => {
     // silencioso
   }
 }, [token]);
+
+// Busca o relatório agregado de descartes/pontos para o intervalo escolhido (rota ADMIN).
+const gerarRelatorioDescartes = useCallback(async () => {
+  if (!token) return;
+
+  if (!periodo.inicio || !periodo.fim) {
+    setDescartesMsg({ tipo: "erro", texto: "Informe a data inicial e a final." });
+    return;
+  }
+  if (periodo.fim < periodo.inicio) {
+    setDescartesMsg({ tipo: "erro", texto: "A data final não pode ser anterior à inicial." });
+    return;
+  }
+
+  setCarregandoDescartes(true);
+  setDescartesMsg(null);
+
+  try {
+    const params = new URLSearchParams({ inicio: periodo.inicio, fim: periodo.fim });
+    const res = await fetch(`${API}/relatorios/descartes?${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error(await res.text());
+    setRelatorioDescartes(await res.json());
+  } catch (e) {
+    setRelatorioDescartes(null);
+    setDescartesMsg({ tipo: "erro", texto: e.message || "Erro ao gerar relatório." });
+  } finally {
+    setCarregandoDescartes(false);
+  }
+}, [token, periodo]);
 
 useEffect(() => {
   if (adminView === "campanhas") {
@@ -1003,6 +1040,149 @@ const excluirCampanha = async (id) => {
     <Typography sx={{ color: "rgba(255,255,255,0.68)", marginBottom: "22px" }}>
       Acompanhe os indicadores consolidados de participação, engajamento e resíduos coletados.
     </Typography>
+
+    {/* RF15/RF16 — Descartes e pontos por período */}
+    <Box
+      sx={{
+        background: "rgba(255,255,255,0.06)",
+        border: "1px solid rgba(165,214,167,0.20)",
+        borderRadius: "16px",
+        padding: "20px",
+        marginBottom: "28px",
+      }}
+    >
+      <Typography sx={{ fontWeight: 800, fontSize: "1.1rem", marginBottom: "6px" }}>
+        Descartes e pontos por período
+      </Typography>
+      <Typography sx={{ color: "rgba(255,255,255,0.68)", marginBottom: "16px", fontSize: "0.9rem" }}>
+        Selecione um intervalo de datas para agregar os descartes validados e os pontos gerados.
+      </Typography>
+
+      <Box
+        component="form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          gerarRelatorioDescartes();
+        }}
+        sx={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+          gap: "14px",
+          alignItems: "end",
+          marginBottom: "16px",
+        }}
+      >
+        <Box>
+          <Typography sx={labelStyle}>Data inicial</Typography>
+          <input
+            type="date"
+            value={periodo.inicio}
+            onChange={(e) => setPeriodo({ ...periodo, inicio: e.target.value })}
+            style={inputStyle}
+          />
+        </Box>
+        <Box>
+          <Typography sx={labelStyle}>Data final</Typography>
+          <input
+            type="date"
+            value={periodo.fim}
+            onChange={(e) => setPeriodo({ ...periodo, fim: e.target.value })}
+            style={inputStyle}
+          />
+        </Box>
+        <Button
+          type="submit"
+          disabled={carregandoDescartes}
+          startIcon={<Recycle size={18} />}
+          sx={{
+            background: "#2e7d32",
+            color: "#fff",
+            borderRadius: "12px",
+            textTransform: "none",
+            fontWeight: 700,
+            padding: "10px 16px",
+            height: "44px",
+            "&:hover": { background: "#1b5e20" },
+            "&.Mui-disabled": { background: "rgba(46,125,50,0.5)", color: "rgba(255,255,255,0.6)" },
+          }}
+        >
+          {carregandoDescartes ? "Gerando..." : "Gerar"}
+        </Button>
+      </Box>
+
+      {descartesMsg && (
+        <Typography
+          sx={{
+            color: descartesMsg.tipo === "ok" ? "#A5D6A7" : "#EF9A9A",
+            fontWeight: 600,
+            marginBottom: "16px",
+          }}
+        >
+          ⚠️ {descartesMsg.texto}
+        </Typography>
+      )}
+
+      {relatorioDescartes && (
+        <>
+          <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px", marginBottom: "16px" }}>
+            {[
+              ["Descartes", relatorioDescartes.totalDescartes],
+              ["Unidades", relatorioDescartes.quantidadeTotal],
+              ["Pontos gerados", relatorioDescartes.pontosGerados],
+            ].map(([label, value]) => (
+              <Box
+                key={label}
+                sx={{
+                  background: "rgba(0,0,0,0.28)",
+                  border: "1px solid rgba(165,214,167,0.20)",
+                  borderRadius: "12px",
+                  padding: "14px",
+                }}
+              >
+                <Typography sx={{ color: "rgba(255,255,255,0.65)", fontSize: "0.82rem" }}>
+                  {label}
+                </Typography>
+                <Typography sx={{ fontSize: "1.5rem", fontWeight: 800, marginTop: "4px" }}>
+                  {value ?? 0}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+
+          <Typography sx={{ color: "rgba(255,255,255,0.7)", fontSize: "0.9rem", marginBottom: "10px" }}>
+            Período: <strong>{relatorioDescartes.inicio}</strong> até <strong>{relatorioDescartes.fim}</strong>
+          </Typography>
+
+          {(relatorioDescartes.residuos || []).length === 0 ? (
+            <Typography sx={{ color: "rgba(255,255,255,0.72)" }}>
+              Nenhum descarte validado nesse período.
+            </Typography>
+          ) : (
+            <Box sx={{ display: "grid", gap: "10px" }}>
+              {relatorioDescartes.residuos.map((r) => (
+                <Box
+                  key={r.tipoResiduo}
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    background: "rgba(0,0,0,0.28)",
+                    border: "1px solid rgba(165,214,167,0.20)",
+                    borderRadius: "12px",
+                    padding: "12px 16px",
+                  }}
+                >
+                  <Typography sx={{ fontWeight: 700 }}>{r.tipoResiduo}</Typography>
+                  <Typography sx={{ color: "#A5D6A7", fontWeight: 800 }}>
+                    {r.quantidadeTotal || 0} unidade(s) • {r.pontosGerados || 0} pts
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          )}
+        </>
+      )}
+    </Box>
 
     {!relatorioEngajamento || !relatorioResiduos ? (
       <Typography sx={{ color: "rgba(255,255,255,0.72)" }}>
