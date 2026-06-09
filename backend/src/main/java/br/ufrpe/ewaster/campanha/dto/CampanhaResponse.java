@@ -11,6 +11,9 @@ public class CampanhaResponse {
     private LocalDate dataInicio;
     private LocalDate dataFim;
     private boolean ativa;
+    private Double multiplicador;
+    private Integer tipoResiduoId;
+    private String tipoResiduoNome;
 
     public static CampanhaResponse from(Campanha campanha) {
         CampanhaResponse response = new CampanhaResponse();
@@ -20,6 +23,11 @@ public class CampanhaResponse {
         response.id = campanha.getId();
         response.nome = campanha.getNome();
         response.dataInicio = campanha.getDataInicio();
+        response.multiplicador = campanha.getMultiplicador();
+        if (campanha.getTipoResiduo() != null) {
+    response.tipoResiduoId = campanha.getTipoResiduo().getId();
+    response.tipoResiduoNome = campanha.getTipoResiduo().getNome();
+}
         response.dataFim = campanha.getDataFim();
         response.ativa =
                 !hoje.isBefore(campanha.getDataInicio()) &&
@@ -47,4 +55,14 @@ public class CampanhaResponse {
     public boolean isAtiva() {
         return ativa;
     }
+    public Double getMultiplicador() {
+    return multiplicador;
+}
+public Integer getTipoResiduoId() {
+    return tipoResiduoId;
+}
+
+public String getTipoResiduoNome() {
+    return tipoResiduoNome;
+}
 }

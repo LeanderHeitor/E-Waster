@@ -7,6 +7,8 @@ public class CampanhaRequest {
     private String nome;
     private LocalDate dataInicio;
     private LocalDate dataFim;
+    private Double multiplicador;
+    private Integer tipoResiduoId;
 
     public String getNome() {
         return nome;
@@ -31,4 +33,18 @@ public class CampanhaRequest {
     public void setDataFim(LocalDate dataFim) {
         this.dataFim = dataFim;
     }
+    public Double getMultiplicador() {
+    return multiplicador;
+}
+
+public void setMultiplicador(Double multiplicador) {
+    this.multiplicador = multiplicador;
+}
+public Integer getTipoResiduoId() {
+    return tipoResiduoId;
+}
+
+public void setTipoResiduoId(Integer tipoResiduoId) {
+    this.tipoResiduoId = tipoResiduoId;
+}
 }

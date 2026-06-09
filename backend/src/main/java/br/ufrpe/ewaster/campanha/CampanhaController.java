@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
+import br.ufrpe.ewaster.tiporesiduo.TipoResiduo;
+import br.ufrpe.ewaster.tiporesiduo.TipoResiduoRepository;
 
 @RestController
 @RequestMapping("/api/v1/campanhas")
@@ -17,6 +19,9 @@ public class CampanhaController {
 
     @Autowired
     private CampanhaRepository campanhaRepository;
+
+    @Autowired
+private TipoResiduoRepository tipoResiduoRepository;
 
     @GetMapping
     public ResponseEntity<List<CampanhaResponse>> listarCampanhas() {
@@ -46,10 +51,16 @@ public class CampanhaController {
         validarRequest(request);
 
         Campanha campanha = new Campanha(
-                request.getNome().trim(),
-                request.getDataInicio(),
-                request.getDataFim()
-        );
+        request.getNome().trim(),
+        request.getDataInicio(),
+        request.getDataFim(),
+        request.getMultiplicador()
+);
+if (request.getTipoResiduoId() != null) {
+    TipoResiduo tipoResiduo = tipoResiduoRepository.findById(request.getTipoResiduoId())
+            .orElseThrow(() -> new RuntimeException("Tipo de resíduo não encontrado."));
+    campanha.setTipoResiduo(tipoResiduo);
+}
 
         Campanha salva = campanhaRepository.save(campanha);
 
@@ -69,6 +80,14 @@ public class CampanhaController {
         campanha.setNome(request.getNome().trim());
         campanha.setDataInicio(request.getDataInicio());
         campanha.setDataFim(request.getDataFim());
+        campanha.setMultiplicador(request.getMultiplicador() != null ? request.getMultiplicador() : 1.0);
+        if (request.getTipoResiduoId() != null) {
+    TipoResiduo tipoResiduo = tipoResiduoRepository.findById(request.getTipoResiduoId())
+            .orElseThrow(() -> new RuntimeException("Tipo de resíduo não encontrado."));
+    campanha.setTipoResiduo(tipoResiduo);
+} else {
+    campanha.setTipoResiduo(null);
+}
 
         Campanha atualizada = campanhaRepository.save(campanha);
 
@@ -102,5 +121,8 @@ public class CampanhaController {
         if (request.getDataFim().isBefore(request.getDataInicio())) {
             throw new RuntimeException("A data de fim não pode ser anterior à data de início.");
         }
+        if (request.getMultiplicador() != null && request.getMultiplicador() < 1.0) {
+    throw new RuntimeException("O multiplicador deve ser maior ou igual a 1.");
+}
     }
 }

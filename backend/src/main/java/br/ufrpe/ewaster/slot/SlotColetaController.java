@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 
 @RestController
 @RequestMapping("/api/v1/slots")
@@ -86,5 +88,20 @@ public class SlotColetaController {
 
         // Slot recem-criado ainda nao tem agendamentos (0 ativos).
         return ResponseEntity.status(HttpStatus.CREATED).body(new SlotResponseDTO(salvo, 0));
+        
     }
+    @PatchMapping("/{id}/desativar")
+public ResponseEntity<?> desativarSlot(@PathVariable Integer id) {
+    SlotColeta slot = slotRepository.findById(id)
+            .orElse(null);
+
+    if (slot == null) {
+        return ResponseEntity.notFound().build();
+    }
+
+    slot.setAtivo(false);
+    slotRepository.save(slot);
+
+    return ResponseEntity.ok(new SlotResponseDTO(slot, 0));
+}
 }
