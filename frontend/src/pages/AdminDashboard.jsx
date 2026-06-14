@@ -156,6 +156,32 @@ export default function AdminDashboard({ token, onLogout }) {
       setSalvandoSlot(false);
     }
   };
+  const desativarSlot = async (id) => {
+  const confirmar = window.confirm("Tem certeza que deseja remover este horário da lista?");
+
+  if (!confirmar) return;
+
+  try {
+    const res = await fetch(`${API}/slots/${id}/desativar`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error(await res.text());
+    }
+
+    setSlotMsg({ tipo: "ok", texto: "Horário removido da lista com sucesso." });
+    await carregarSlots();
+  } catch (err) {
+    setSlotMsg({
+      tipo: "erro",
+      texto: err.message || "Erro ao remover horário.",
+    });
+  }
+};
 
   const [campanhas, setCampanhas] = useState([]);
   const [campanhaEditandoId, setCampanhaEditandoId] = useState(null);
@@ -164,7 +190,11 @@ const [novaCampanha, setNovaCampanha] = useState({
   nome: "",
   dataInicio: "",
   dataFim: "",
+  multiplicador: 1.0,
+  tipoResiduoId: "",
 });
+
+const [tiposResiduo, setTiposResiduo] = useState([]);
 
 const [campanhaMsg, setCampanhaMsg] = useState(null);
 
@@ -253,11 +283,30 @@ const gerarRelatorioDescartes = useCallback(async () => {
   }
 }, [token, periodo]);
 
+const carregarTiposResiduo = useCallback(async () => {
+  if (!token) return;
+
+  try {
+    const res = await fetch(`${API}/tipos-residuo`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (res.ok) {
+      setTiposResiduo(await res.json());
+    }
+  } catch {
+    // silencioso
+  }
+}, [token]);
+
 useEffect(() => {
   if (adminView === "campanhas") {
     carregarCampanhas();
+    carregarTiposResiduo();
   }
-}, [adminView, carregarCampanhas]);
+}, [adminView, carregarCampanhas, carregarTiposResiduo]);
 
 useEffect(() => {
   if (adminView === "relatorios") {
@@ -309,10 +358,12 @@ const salvarCampanha = async (e) => {
     });
 
     setNovaCampanha({
-      nome: "",
-      dataInicio: "",
-      dataFim: "",
-    });
+  nome: "",
+  dataInicio: "",
+  dataFim: "",
+  multiplicador: 1.0,
+  tipoResiduoId: "",
+});
 
     setCampanhaEditandoId(null);
 
@@ -331,10 +382,12 @@ const iniciarEdicaoCampanha = (campanha) => {
   setCampanhaEditandoId(campanha.id);
 
   setNovaCampanha({
-    nome: campanha.nome,
-    dataInicio: campanha.dataInicio,
-    dataFim: campanha.dataFim,
-  });
+  nome: campanha.nome,
+  dataInicio: campanha.dataInicio,
+  dataFim: campanha.dataFim,
+  multiplicador: campanha.multiplicador || 1.0,
+  tipoResiduoId: campanha.tipoResiduoId || "",
+});
 
   setCampanhaMsg({
     tipo: "ok",
@@ -345,10 +398,12 @@ const cancelarEdicaoCampanha = () => {
   setCampanhaEditandoId(null);
 
   setNovaCampanha({
-    nome: "",
-    dataInicio: "",
-    dataFim: "",
-  });
+  nome: "",
+  dataInicio: "",
+  dataFim: "",
+  multiplicador: 1.0,
+  tipoResiduoId: "",
+});
 
   setCampanhaMsg(null);
 };
@@ -818,9 +873,26 @@ const excluirCampanha = async (id) => {
                     <Typography sx={{ fontWeight: 700 }}>
                       📅 {s.data} • {formatarHora(s.horarioInicio)} às {formatarHora(s.horarioFim)}
                     </Typography>
-                    <Typography sx={{ color: "rgba(255,255,255,0.7)", fontSize: "0.88rem" }}>
-                      {s.vagasDisponiveis}/{s.capacidadeMaxima} vagas
-                    </Typography>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: "12px" }}>
+  <Typography sx={{ color: "rgba(255,255,255,0.7)", fontSize: "0.88rem" }}>
+    {s.vagasDisponiveis}/{s.capacidadeMaxima} vagas
+  </Typography>
+
+  <Button
+    onClick={() => desativarSlot(s.id)}
+    sx={{
+      color: "#EF9A9A",
+      border: "1px solid rgba(239,154,154,0.45)",
+      borderRadius: "10px",
+      textTransform: "none",
+      fontWeight: 700,
+      padding: "6px 10px",
+      fontSize: "0.78rem",
+    }}
+  >
+    Remover
+  </Button>
+</Box>
                   </Box>
                 ))}
               </Box>
@@ -890,6 +962,43 @@ const excluirCampanha = async (id) => {
         />
       </Box>
 
+      <Box>
+  <Typography sx={labelStyle}>Multiplicador</Typography>
+  <input
+    type="number"
+    min="1"
+    step="0.1"
+    value={novaCampanha.multiplicador}
+    onChange={(e) =>
+      setNovaCampanha({
+        ...novaCampanha,
+        multiplicador: Number(e.target.value),
+      })
+    }
+    style={inputStyle}
+  />
+  <Box>
+  <Typography sx={labelStyle}>Tipo de resíduo</Typography>
+  <select
+    value={novaCampanha.tipoResiduoId}
+    onChange={(e) =>
+      setNovaCampanha({
+        ...novaCampanha,
+        tipoResiduoId: e.target.value === "" ? "" : Number(e.target.value),
+      })
+    }
+    style={inputStyle}
+  >
+    <option value="">Todos os resíduos</option>
+    {tiposResiduo.map((tipo) => (
+      <option key={tipo.id} value={tipo.id}>
+        {tipo.nome}
+      </option>
+    ))}
+  </select>
+</Box>
+</Box>
+
       <Button
         type="submit"
         disabled={salvandoCampanha}
@@ -958,67 +1067,76 @@ const excluirCampanha = async (id) => {
       <Box sx={{ display: "grid", gap: "10px" }}>
         {campanhas.map((c) => (
           <Box
-            key={c.id}
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(165,214,167,0.20)",
-              borderRadius: "12px",
-              padding: "12px 16px",
-            }}
-          >
-            <Box>
-              <Typography sx={{ fontWeight: 700 }}>{c.nome}</Typography>
-              <Typography sx={{ color: "rgba(255,255,255,0.65)", fontSize: "0.85rem" }}>
-                {c.dataInicio} até {c.dataFim}
-              </Typography>
-            </Box>
-
-            <Box sx={{ display: "flex", alignItems: "center", gap: "12px" }}>
-  <Typography
-    sx={{
-      color: c.ativa ? "#A5D6A7" : "#EF9A9A",
-      fontSize: "0.8rem",
-      fontWeight: 800,
-    }}
-  >
-    {c.ativa ? "ATIVA" : "INATIVA"}
-  </Typography>
-
-  <Button
-  onClick={() => iniciarEdicaoCampanha(c)}
+  key={c.id}
   sx={{
-    color: "#A5D6A7",
-    border: "1px solid rgba(165,214,167,0.45)",
-    borderRadius: "10px",
-    textTransform: "none",
-    fontWeight: 700,
-    padding: "6px 10px",
-    fontSize: "0.78rem",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    background: "rgba(255,255,255,0.06)",
+    border: "1px solid rgba(165,214,167,0.20)",
+    borderRadius: "12px",
+    padding: "12px 16px",
   }}
 >
-  Editar
-</Button>
+  <Box>
+    <Typography sx={{ fontWeight: 700 }}>{c.nome}</Typography>
 
-  <Button
-    onClick={() => excluirCampanha(c.id)}
-    sx={{
-      color: "#EF9A9A",
-      border: "1px solid rgba(239,154,154,0.45)",
-      borderRadius: "10px",
-      textTransform: "none",
-      fontWeight: 700,
-      padding: "6px 10px",
-      fontSize: "0.78rem",
-    }}
-  >
-    Excluir
-  </Button>
+    <Typography sx={{ color: "rgba(255,255,255,0.65)", fontSize: "0.85rem" }}>
+      {c.dataInicio} até {c.dataFim}
+    </Typography>
+
+    <Typography sx={{ color: "rgba(255,255,255,0.65)", fontSize: "0.85rem" }}>
+      Multiplicador: {c.multiplicador || 1}x
+    </Typography>
+
+    <Typography sx={{ color: "rgba(255,255,255,0.65)", fontSize: "0.85rem" }}>
+      Tipo: {c.tipoResiduoNome || "Todos os resíduos"}
+    </Typography>
+  </Box>
+
+  <Box sx={{ display: "flex", alignItems: "center", gap: "12px" }}>
+    <Typography
+      sx={{
+        color: c.ativa ? "#A5D6A7" : "#EF9A9A",
+        fontSize: "0.8rem",
+        fontWeight: 800,
+      }}
+    >
+      {c.ativa ? "ATIVA" : "INATIVA"}
+    </Typography>
+
+    <Button
+      onClick={() => iniciarEdicaoCampanha(c)}
+      sx={{
+        color: "#A5D6A7",
+        border: "1px solid rgba(165,214,167,0.45)",
+        borderRadius: "10px",
+        textTransform: "none",
+        fontWeight: 700,
+        padding: "6px 10px",
+        fontSize: "0.78rem",
+      }}
+    >
+      Editar
+    </Button>
+
+    <Button
+      onClick={() => excluirCampanha(c.id)}
+      sx={{
+        color: "#EF9A9A",
+        border: "1px solid rgba(239,154,154,0.45)",
+        borderRadius: "10px",
+        textTransform: "none",
+        fontWeight: 700,
+        padding: "6px 10px",
+        fontSize: "0.78rem",
+      }}
+    >
+      Excluir
+    </Button>
+  </Box>
 </Box>
-          </Box>
-        ))}
+))}
       </Box>
     )}
   </Box>
