@@ -30,6 +30,14 @@ public class Agendamento {
     @Column(name = "total_pontos")
     private Integer totalPontos;
 
+    // Snapshot da campanha aplicada na aprovação (origem do bônus exibida na UI).
+    // multiplicador = 1.0 e campanhaNome = null quando não houve campanha.
+    @Column(name = "multiplicador")
+    private Double multiplicador;
+
+    @Column(name = "campanha_nome")
+    private String campanhaNome;
+
     @OneToMany(mappedBy = "agendamento", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AgendamentoItem> itens = new java.util.ArrayList<>();
 
@@ -78,5 +86,21 @@ public class Agendamento {
 
     public void setTotalPontos(Integer totalPontos) {
         this.totalPontos = totalPontos;
+    }
+
+    public Double getMultiplicador() {
+        return multiplicador;
+    }
+
+    public void setMultiplicador(Double multiplicador) {
+        this.multiplicador = multiplicador;
+    }
+
+    public String getCampanhaNome() {
+        return campanhaNome;
+    }
+
+    public void setCampanhaNome(String campanhaNome) {
+        this.campanhaNome = campanhaNome;
     }
 }

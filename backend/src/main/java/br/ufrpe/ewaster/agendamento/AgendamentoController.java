@@ -104,7 +104,15 @@ public class AgendamentoController {
                 item.getTipoResiduo().getPontuacaoBase()
         )).collect(Collectors.toList());
 
-        return new AgendamentoResponse(a.getId(), a.getStatus().name(), totalPts, slotDTO, itensDTO);
+        return new AgendamentoResponse(
+                a.getId(),
+                a.getStatus().name(),
+                totalPts,
+                estimativaBase,          // valor original (sem multiplicador)
+                a.getMultiplicador(),    // multiplicador congelado (null se nunca aprovado)
+                a.getCampanhaNome(),     // campanha que deu o bônus (null se não houve)
+                slotDTO,
+                itensDTO);
     }
 
     // Versão admin: inclui o dono do agendamento.

@@ -8,6 +8,9 @@ public record AgendamentoResponse(
         Integer id,
         String status,
         int totalPontos,
+        int pontosBase,
+        Double multiplicador,
+        String campanhaNome,
         SlotDTO slot,
         List<ItemResponse> itens
 ) {

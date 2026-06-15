@@ -6,14 +6,17 @@ import br.ufrpe.ewaster.agendamento.AgendamentoRepository;
 import br.ufrpe.ewaster.agendamento.StatusAgendamento;
 import br.ufrpe.ewaster.campanha.Campanha;
 import br.ufrpe.ewaster.campanha.CampanhaRepository;
+import br.ufrpe.ewaster.exception.RegraNegocioException;
 import br.ufrpe.ewaster.tiporesiduo.TipoResiduo;
 import br.ufrpe.ewaster.user.User;
 import br.ufrpe.ewaster.user.UserRepository;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -44,10 +47,10 @@ public class DescarteService {
     @Transactional
     public int aprovarAgendamento(Integer agendamentoId) {
         Agendamento ag = agendamentoRepository.findById(agendamentoId)
-                .orElseThrow(() -> new RuntimeException("Agendamento não encontrado"));
+                .orElseThrow(() -> new RegraNegocioException("Agendamento não encontrado", HttpStatus.NOT_FOUND));
 
         if (ag.getStatus() != StatusAgendamento.PENDENTE) {
-            throw new RuntimeException("Só agendamentos pendentes podem ser aprovados.");
+            throw new RegraNegocioException("Só agendamentos pendentes podem ser aprovados.");
         }
 
         User usuario = ag.getUsuario();
@@ -58,12 +61,19 @@ public class DescarteService {
                 .findByDataInicioLessThanEqualAndDataFimGreaterThanEqual(dataDescarte, dataDescarte);
 
         int pontosGanhos = 0;
+        Campanha melhorCampanhaAplicada = null; // a de maior multiplicador entre os itens
 
         for (AgendamentoItem item : ag.getItens()) {
             TipoResiduo tipo = item.getTipoResiduo();
             int qtd = item.getQuantidade() != null ? item.getQuantidade() : 1;
-            double multiplicador = melhorMultiplicador(campanhasVigentes, tipo);
+
+            Campanha campanhaItem = melhorCampanha(campanhasVigentes, tipo);
+            double multiplicador = multiplicadorDe(campanhaItem);
             pontosGanhos += (int) Math.round(tipo.getPontuacaoBase() * qtd * multiplicador);
+
+            if (multiplicadorDe(melhorCampanhaAplicada) < multiplicador) {
+                melhorCampanhaAplicada = campanhaItem;
+            }
 
             descarteRepository.save(new Descarte(usuario, tipo, ag));
         }
@@ -75,6 +85,16 @@ public class DescarteService {
         // Congela os pontos concedidos (já com multiplicador) para todas as telas
         // exibirem o mesmo valor final e para conseguirmos estorná-los num cancelamento.
         ag.setTotalPontos(pontosGanhos);
+        // Congela também a campanha/multiplicador aplicados, para "Meus Agendamentos"
+        // mostrar a origem do bônus mesmo que a campanha mude/expire depois.
+        double multiplicadorFinal = multiplicadorDe(melhorCampanhaAplicada);
+        if (melhorCampanhaAplicada != null && multiplicadorFinal > 1.0) {
+            ag.setMultiplicador(multiplicadorFinal);
+            ag.setCampanhaNome(melhorCampanhaAplicada.getNome());
+        } else {
+            ag.setMultiplicador(1.0);
+            ag.setCampanhaNome(null);
+        }
         ag.setStatus(StatusAgendamento.REALIZADO);
         agendamentoRepository.save(ag);
 
@@ -82,16 +102,23 @@ public class DescarteService {
     }
 
     /**
-     * Maior multiplicador entre as campanhas que se aplicam ao tipo: uma campanha
-     * sem tipo de resíduo vale para todos; com tipo definido, só para aquele.
-     * Sem campanha aplicável, retorna 1.0 (sem bônus).
+     * Melhor campanha (maior multiplicador) entre as que se aplicam ao tipo: uma
+     * campanha sem tipo de resíduo vale para todos; com tipo definido, só para
+     * aquele. Sem campanha aplicável, retorna null (sem bônus).
      */
-    private double melhorMultiplicador(List<Campanha> campanhas, TipoResiduo tipo) {
+    private Campanha melhorCampanha(List<Campanha> campanhas, TipoResiduo tipo) {
         return campanhas.stream()
                 .filter(c -> c.getTipoResiduo() == null
                         || c.getTipoResiduo().getId().equals(tipo.getId()))
-                .mapToDouble(c -> c.getMultiplicador() != null ? c.getMultiplicador() : 1.0)
-                .max()
-                .orElse(1.0);
+                .max(Comparator.comparingDouble(this::multiplicadorDe))
+                .orElse(null);
+    }
+
+    // Multiplicador de uma campanha (1.0 se nula ou sem valor definido).
+    private double multiplicadorDe(Campanha campanha) {
+        if (campanha == null || campanha.getMultiplicador() == null) {
+            return 1.0;
+        }
+        return campanha.getMultiplicador();
     }
 }

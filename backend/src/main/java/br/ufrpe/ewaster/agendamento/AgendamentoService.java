@@ -1,12 +1,14 @@
 package br.ufrpe.ewaster.agendamento;
 
 import br.ufrpe.ewaster.agendamento.dto.AgendamentoRequest;
+import br.ufrpe.ewaster.exception.RegraNegocioException;
 import br.ufrpe.ewaster.slot.SlotColeta;
 import br.ufrpe.ewaster.slot.SlotColetaRepository;
 import br.ufrpe.ewaster.tiporesiduo.TipoResiduo;
 import br.ufrpe.ewaster.tiporesiduo.TipoResiduoRepository;
 import br.ufrpe.ewaster.user.User;
 import br.ufrpe.ewaster.user.UserRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,22 +37,22 @@ public class AgendamentoService {
     public Agendamento criarAgendamento(AgendamentoRequest request, String emailUsuario) {
         // 1. Check de existência do Slot
         SlotColeta slot = slotColetaRepository.findById(request.slotId())
-                .orElseThrow(() -> new RuntimeException("Slot não encontrado"));
+                .orElseThrow(() -> new RegraNegocioException("Slot não encontrado", HttpStatus.NOT_FOUND));
 
         // 1.1. Slot cujo horário de início já passou não pode mais ser agendado.
         if (LocalDateTime.of(slot.getData(), slot.getHorarioInicio()).isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Esse horário já passou e não pode mais ser agendado.");
+            throw new RegraNegocioException("Esse horário já passou e não pode mais ser agendado.");
         }
 
         // 2. CHECK: COUNT < capacidade
         long atuais = agendamentoRepository.countAgendamentosAtivosPorSlot(request.slotId());
         if (atuais >= slot.getCapacidadeMaxima()) {
-            throw new RuntimeException("Capacidade máxima do slot atingida!");
+            throw new RegraNegocioException("Capacidade máxima do slot atingida!");
         }
 
         // ALTERADO: Busca pelo e-mail vindo do token de autenticação do Controller
         User usuario = userRepository.findByEmail(emailUsuario)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+                .orElseThrow(() -> new RegraNegocioException("Usuário não encontrado", HttpStatus.NOT_FOUND));
 
         // 3. Criar o Pai (Agendamento)
         Agendamento agendamento = new Agendamento();
@@ -61,7 +63,7 @@ public class AgendamentoService {
         // 4. Montar os Filhos (Itens)
         for (var itemReq : request.itens()) {
             TipoResiduo tipo = tipoResiduoRepository.findById(itemReq.tipoResiduoId())
-                    .orElseThrow(() -> new RuntimeException("Tipo de resíduo não encontrado"));
+                    .orElseThrow(() -> new RegraNegocioException("Tipo de resíduo não encontrado", HttpStatus.NOT_FOUND));
 
             AgendamentoItem item = new AgendamentoItem();
             item.setTipoResiduo(tipo);
@@ -80,11 +82,11 @@ public class AgendamentoService {
     @Transactional
     public void cancelarAgendamento(Integer id, String emailUsuario) {
         Agendamento agendamento = agendamentoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Agendamento não encontrado"));
+                .orElseThrow(() -> new RegraNegocioException("Agendamento não encontrado", HttpStatus.NOT_FOUND));
 
         // Garante que o usuário logado só possa cancelar o próprio agendamento
         if (!agendamento.getUsuario().getEmail().equals(emailUsuario)) {
-            throw new RuntimeException("Você não tem permissão para cancelar este agendamento.");
+            throw new RegraNegocioException("Você não tem permissão para cancelar este agendamento.", HttpStatus.FORBIDDEN);
         }
 
         // Se já estava aprovado, estorna os pontos concedidos para que o cancelado
@@ -105,10 +107,10 @@ public class AgendamentoService {
     @Transactional
     public void recusarAgendamento(Integer id) {
         Agendamento agendamento = agendamentoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Agendamento não encontrado"));
+                .orElseThrow(() -> new RegraNegocioException("Agendamento não encontrado", HttpStatus.NOT_FOUND));
 
         if (agendamento.getStatus() != StatusAgendamento.PENDENTE) {
-            throw new RuntimeException("Só agendamentos pendentes podem ser recusados.");
+            throw new RegraNegocioException("Só agendamentos pendentes podem ser recusados.");
         }
 
         agendamento.setStatus(StatusAgendamento.NAO_COMPARECEU);

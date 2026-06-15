@@ -3,6 +3,9 @@ import PageHeader from "../components/PageHeader";
 import BadgeStatus from "../components/BadgeStatus";
 import { COLORS } from "../styles/colors";
 
+// Multiplicador amigável: 3x (e não 3.0000x), 1.5x com vírgula em pt-BR.
+const formatarMult = (m) => `${Number(m).toLocaleString("pt-BR")}x`;
+
 function MeusAgendamentos({ agendamentos, onAgendar, onCancelar }) {
   const [confirmandoCancelar, setConfirmandoCancelar] = useState(null);
 
@@ -83,6 +86,9 @@ const podeCancelar = status === "PENDENTE" || status === "Pendente";
 
           const pontosDoAgendamento = agd.totalPts || agd.totalPontos || 0;
 
+          // Bônus de campanha congelado na aprovação (origem dos pontos).
+          const temBonusCampanha = agd.campanhaNome && agd.multiplicador > 1;
+
           // Formatação amigável de data vinda do LocalDate do Java (yyyy-MM-dd)
           const dataFormatada = agd.slot?.data
             ? agd.slot.data.split("-").reverse().join("/")
@@ -119,6 +125,11 @@ const podeCancelar = status === "PENDENTE" || status === "Pendente";
                     <div style={{ fontSize: 22, fontWeight: 700, color: isCancelado ? COLORS.gray : COLORS.orange }}>
                       {isCancelado ? <s>+{pontosDoAgendamento}</s> : `+${pontosDoAgendamento}`}
                     </div>
+                    {temBonusCampanha && !isCancelado && (
+                      <div style={{ fontSize: 11, color: COLORS.textSec, marginTop: 2, whiteSpace: "nowrap" }}>
+                        de <s>{agd.pontosBase}</s> · {formatarMult(agd.multiplicador)}
+                      </div>
+                    )}
                   </div>
 
                   {podeCancelar && !cancelando && (
@@ -151,6 +162,24 @@ const podeCancelar = status === "PENDENTE" || status === "Pendente";
               </div>
 
               <div style={{ borderTop: `1px solid ${COLORS.grayBorder}`, paddingTop: 12 }}>
+                {temBonusCampanha && (
+                  <div
+                    style={{
+                      display: "flex", alignItems: "center", gap: 8,
+                      background: isCancelado ? COLORS.grayLight : COLORS.greenBg,
+                      border: `1px solid ${isCancelado ? COLORS.grayBorder : COLORS.green}`,
+                      borderRadius: 8, padding: "8px 12px", marginBottom: 12,
+                      fontSize: 12, color: COLORS.text, lineHeight: 1.5,
+                    }}
+                  >
+                    <span style={{ fontSize: 15 }}>🎉</span>
+                    <span>
+                      Campanha <strong>{agd.campanhaNome}</strong> — bônus de{" "}
+                      <strong>{formatarMult(agd.multiplicador)}</strong>:{" "}
+                      <s>{agd.pontosBase}</s> → <strong>{pontosDoAgendamento} pts</strong>
+                    </span>
+                  </div>
+                )}
                 <div style={{ fontSize: 12, color: COLORS.textSec, marginBottom: 8, fontWeight: 500 }}>Itens selecionados:</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {agd.itens && agd.itens.map((item) => {

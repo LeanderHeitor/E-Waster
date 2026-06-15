@@ -168,10 +168,25 @@ class DescarteServiceTest {
         Agendamento ag = criarPendente("congela@teste.dev", qtd);
         descarteService.aprovarAgendamento(ag.getId());
 
+        Agendamento aprovado = agendamentoRepository.findById(ag.getId()).orElseThrow();
+
         // Os pontos finais (com multiplicador) ficam congelados no agendamento —
         // mesma fonte que o ranking e a tela "Meus Agendamentos" exibem.
-        assertEquals(base * qtd * 2,
-                agendamentoRepository.findById(ag.getId()).orElseThrow().getTotalPontos());
+        assertEquals(base * qtd * 2, aprovado.getTotalPontos());
+        // A campanha aplicada também fica congelada, para a UI mostrar a origem do bônus.
+        assertEquals(2.0, aprovado.getMultiplicador(), 0.0001);
+        assertEquals("Mutirão E-lixo", aprovado.getCampanhaNome());
+    }
+
+    @Test
+    void aprovar_semCampanha_naoCongelaMultiplicador() {
+        Agendamento ag = criarPendente("sem-campanha@teste.dev", 1);
+        descarteService.aprovarAgendamento(ag.getId());
+
+        Agendamento aprovado = agendamentoRepository.findById(ag.getId()).orElseThrow();
+        // Sem campanha aplicável: multiplicador neutro (1.0) e nenhuma campanha registrada.
+        assertEquals(1.0, aprovado.getMultiplicador(), 0.0001);
+        assertEquals(null, aprovado.getCampanhaNome());
     }
 
     @Test

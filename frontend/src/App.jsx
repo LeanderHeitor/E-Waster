@@ -17,6 +17,24 @@ import Toast from "./components/Toast";
 import { useAuth } from "./context/AuthContext";
 import CampanhasPage from "./pages/CampanhasPage";
 
+// Extrai a mensagem amigável de uma resposta de erro do backend.
+// O backend manda JSON { message: "..." }; cai para texto puro ou um fallback.
+async function mensagemDeErro(response, fallback = "Não foi possível completar a ação.") {
+  let texto = "";
+  try {
+    texto = await response.text();
+  } catch {
+    return fallback;
+  }
+  if (!texto) return fallback;
+  try {
+    const data = JSON.parse(texto);
+    return data.message || data.erro || fallback;
+  } catch {
+    return texto; // resposta já era texto puro
+  }
+}
+
 export default function App() {
   // Pegando o token direto do estado global do Contexto
   const { usuario, autenticado, token, logout } = useAuth();
@@ -156,7 +174,7 @@ const totalAgendamentosAtivos = agendamentosAtivos.length;
         );
 
         if (!response.ok) {
-          throw new Error(await response.text());
+          throw new Error(await mensagemDeErro(response));
         }
 
         const novo = await response.json();
@@ -194,7 +212,7 @@ const totalAgendamentosAtivos = agendamentosAtivos.length;
           }
         );
 
-        if (!response.ok) throw new Error(await response.text());
+        if (!response.ok) throw new Error(await mensagemDeErro(response));
 
         setAgendamentos((prev) =>
           prev.map((a) =>
