@@ -10,6 +10,11 @@ import br.ufrpe.ewaster.agendamento.dto.AgendamentoRequest;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import br.ufrpe.ewaster.campanha.Campanha;
+import br.ufrpe.ewaster.campanha.CampanhaRepository;
+import br.ufrpe.ewaster.tiporesiduo.TipoResiduo;
+
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/v1/agendamentos")
@@ -17,12 +22,15 @@ public class AgendamentoController {
 
     private final AgendamentoRepository agendamentoRepository;
     private final AgendamentoService agendamentoService; // Injetando o service criado
+    private final CampanhaRepository campanhaRepository;
 
     public AgendamentoController(AgendamentoRepository agendamentoRepository,
-                                 AgendamentoService agendamentoService) {
-        this.agendamentoRepository = agendamentoRepository;
-        this.agendamentoService = agendamentoService;
-    }
+                             AgendamentoService agendamentoService,
+                             CampanhaRepository campanhaRepository) {
+    this.agendamentoRepository = agendamentoRepository;
+    this.agendamentoService = agendamentoService;
+    this.campanhaRepository = campanhaRepository;
+}
 
     // TAREFA 3: GET /agendamentos/me (Já integrado e usando seus métodos reais)
     @GetMapping("/me")
@@ -83,9 +91,7 @@ public class AgendamentoController {
 
     // Converte a entidade no DTO de resposta (evita expor dados sensiveis do usuario).
     private AgendamentoResponse toResponse(Agendamento a) {
-        int totalPts = a.getItens().stream()
-                .mapToInt(item -> item.getTipoResiduo().getPontuacaoBase() * item.getQuantidade())
-                .sum();
+        int totalPts = calcularTotalPtsComCampanha(a);
 
         var slotDTO = new AgendamentoResponse.SlotDTO(
                 a.getSlot().getId(),
@@ -106,9 +112,7 @@ public class AgendamentoController {
 
     // Versão admin: inclui o dono do agendamento.
     private AgendamentoAdminResponse toAdminResponse(Agendamento a) {
-        int totalPts = a.getItens().stream()
-                .mapToInt(item -> item.getTipoResiduo().getPontuacaoBase() * item.getQuantidade())
-                .sum();
+        int totalPts = calcularTotalPtsComCampanha(a);
 
         var u = a.getUsuario();
         var usuario = new AgendamentoAdminResponse.UsuarioMini(
@@ -133,4 +137,42 @@ public class AgendamentoController {
                 itens
         );
     }
+    private int calcularTotalPtsComCampanha(Agendamento a) {
+    LocalDate hoje = LocalDate.now();
+
+    List<Campanha> campanhasAtivas = campanhaRepository
+            .findByDataInicioLessThanEqualAndDataFimGreaterThanEqual(hoje, hoje);
+
+    return a.getItens().stream()
+            .mapToInt(item -> {
+                TipoResiduo tipo = item.getTipoResiduo();
+                int qtd = item.getQuantidade() != null ? item.getQuantidade() : 1;
+                int pontosBase = tipo.getPontuacaoBase() * qtd;
+                double multiplicador = obterMaiorMultiplicadorAplicavel(tipo, campanhasAtivas);
+                return (int) Math.round(pontosBase * multiplicador);
+            })
+            .sum();
+}
+
+private double obterMaiorMultiplicadorAplicavel(TipoResiduo tipo, List<Campanha> campanhasAtivas) {
+    double maiorMultiplicador = 1.0;
+
+    for (Campanha campanha : campanhasAtivas) {
+        Double multiplicador = campanha.getMultiplicador() != null
+                ? campanha.getMultiplicador()
+                : 1.0;
+
+        boolean campanhaGlobal = campanha.getTipoResiduo() == null;
+
+        boolean campanhaDoTipo =
+                campanha.getTipoResiduo() != null &&
+                campanha.getTipoResiduo().getId().equals(tipo.getId());
+
+        if ((campanhaGlobal || campanhaDoTipo) && multiplicador > maiorMultiplicador) {
+            maiorMultiplicador = multiplicador;
+        }
+    }
+
+    return maiorMultiplicador;
+}
 }

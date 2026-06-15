@@ -1,0 +1,205 @@
+From a93d65a54511a73596e61ddcff929e746d598d25 Mon Sep 17 00:00:00 2001
+From: analiviapessoa <alanpessoa1387@gmail.com>
+Date: Tue, 9 Jun 2026 17:27:22 -0300
+Subject: [PATCH] =?UTF-8?q?feat:=20aplica=20campanhas=20no=20c=C3=A1lculo?=
+ =?UTF-8?q?=20de=20pontua=C3=A7=C3=A3o=20dos=20agendamentos?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ .../agendamento/AgendamentoController.java    | 62 ++++++++++++++++---
+ .../ewaster/descarte/DescarteService.java     | 51 ++++++++++++---
+ 2 files changed, 95 insertions(+), 18 deletions(-)
+
+diff --git a/backend/src/main/java/br/ufrpe/ewaster/agendamento/AgendamentoController.java b/backend/src/main/java/br/ufrpe/ewaster/agendamento/AgendamentoController.java
+index a8cf800..3a125f6 100644
+--- a/backend/src/main/java/br/ufrpe/ewaster/agendamento/AgendamentoController.java
++++ b/backend/src/main/java/br/ufrpe/ewaster/agendamento/AgendamentoController.java
+@@ -10,6 +10,11 @@ import br.ufrpe.ewaster.agendamento.dto.AgendamentoRequest;
+ 
+ import java.util.List;
+ import java.util.stream.Collectors;
++import br.ufrpe.ewaster.campanha.Campanha;
++import br.ufrpe.ewaster.campanha.CampanhaRepository;
++import br.ufrpe.ewaster.tiporesiduo.TipoResiduo;
++
++import java.time.LocalDate;
+ 
+ @RestController
+ @RequestMapping("/api/v1/agendamentos")
+@@ -17,12 +22,15 @@ public class AgendamentoController {
+ 
+     private final AgendamentoRepository agendamentoRepository;
+     private final AgendamentoService agendamentoService; // Injetando o service criado
++    private final CampanhaRepository campanhaRepository;
+ 
+     public AgendamentoController(AgendamentoRepository agendamentoRepository,
+-                                 AgendamentoService agendamentoService) {
+-        this.agendamentoRepository = agendamentoRepository;
+-        this.agendamentoService = agendamentoService;
+-    }
++                             AgendamentoService agendamentoService,
++                             CampanhaRepository campanhaRepository) {
++    this.agendamentoRepository = agendamentoRepository;
++    this.agendamentoService = agendamentoService;
++    this.campanhaRepository = campanhaRepository;
++}
+ 
+     // TAREFA 3: GET /agendamentos/me (Já integrado e usando seus métodos reais)
+     @GetMapping("/me")
+@@ -83,9 +91,7 @@ public class AgendamentoController {
+ 
+     // Converte a entidade no DTO de resposta (evita expor dados sensiveis do usuario).
+     private AgendamentoResponse toResponse(Agendamento a) {
+-        int totalPts = a.getItens().stream()
+-                .mapToInt(item -> item.getTipoResiduo().getPontuacaoBase() * item.getQuantidade())
+-                .sum();
++        int totalPts = calcularTotalPtsComCampanha(a);
+ 
+         var slotDTO = new AgendamentoResponse.SlotDTO(
+                 a.getSlot().getId(),
+@@ -106,9 +112,7 @@ public class AgendamentoController {
+ 
+     // Versão admin: inclui o dono do agendamento.
+     private AgendamentoAdminResponse toAdminResponse(Agendamento a) {
+-        int totalPts = a.getItens().stream()
+-                .mapToInt(item -> item.getTipoResiduo().getPontuacaoBase() * item.getQuantidade())
+-                .sum();
++        int totalPts = calcularTotalPtsComCampanha(a);
+ 
+         var u = a.getUsuario();
+         var usuario = new AgendamentoAdminResponse.UsuarioMini(
+@@ -133,4 +137,42 @@ public class AgendamentoController {
+                 itens
+         );
+     }
++    private int calcularTotalPtsComCampanha(Agendamento a) {
++    LocalDate hoje = LocalDate.now();
++
++    List<Campanha> campanhasAtivas = campanhaRepository
++            .findByDataInicioLessThanEqualAndDataFimGreaterThanEqual(hoje, hoje);
++
++    return a.getItens().stream()
++            .mapToInt(item -> {
++                TipoResiduo tipo = item.getTipoResiduo();
++                int qtd = item.getQuantidade() != null ? item.getQuantidade() : 1;
++                int pontosBase = tipo.getPontuacaoBase() * qtd;
++                double multiplicador = obterMaiorMultiplicadorAplicavel(tipo, campanhasAtivas);
++                return (int) Math.round(pontosBase * multiplicador);
++            })
++            .sum();
++}
++
++private double obterMaiorMultiplicadorAplicavel(TipoResiduo tipo, List<Campanha> campanhasAtivas) {
++    double maiorMultiplicador = 1.0;
++
++    for (Campanha campanha : campanhasAtivas) {
++        Double multiplicador = campanha.getMultiplicador() != null
++                ? campanha.getMultiplicador()
++                : 1.0;
++
++        boolean campanhaGlobal = campanha.getTipoResiduo() == null;
++
++        boolean campanhaDoTipo =
++                campanha.getTipoResiduo() != null &&
++                campanha.getTipoResiduo().getId().equals(tipo.getId());
++
++        if ((campanhaGlobal || campanhaDoTipo) && multiplicador > maiorMultiplicador) {
++            maiorMultiplicador = multiplicador;
++        }
++    }
++
++    return maiorMultiplicador;
++}
+ }
+diff --git a/backend/src/main/java/br/ufrpe/ewaster/descarte/DescarteService.java b/backend/src/main/java/br/ufrpe/ewaster/descarte/DescarteService.java
+index e379d50..5dbeff7 100644
+--- a/backend/src/main/java/br/ufrpe/ewaster/descarte/DescarteService.java
++++ b/backend/src/main/java/br/ufrpe/ewaster/descarte/DescarteService.java
+@@ -10,6 +10,10 @@ import br.ufrpe.ewaster.user.UserRepository;
+ 
+ import org.springframework.stereotype.Service;
+ import org.springframework.transaction.annotation.Transactional;
++import br.ufrpe.ewaster.campanha.Campanha;
++import br.ufrpe.ewaster.campanha.CampanhaRepository;
++import java.time.LocalDate;
++import java.util.List;
+ 
+ @Service
+ public class DescarteService {
+@@ -17,15 +21,17 @@ public class DescarteService {
+     private final AgendamentoRepository agendamentoRepository;
+     private final DescarteRepository descarteRepository;
+     private final UserRepository userRepository;
++    private final CampanhaRepository campanhaRepository;
+ 
+     public DescarteService(AgendamentoRepository agendamentoRepository,
+-                           DescarteRepository descarteRepository,
+-                           UserRepository userRepository) {
+-        this.agendamentoRepository = agendamentoRepository;
+-        this.descarteRepository = descarteRepository;
+-        this.userRepository = userRepository;
+-    }
+-
++                       DescarteRepository descarteRepository,
++                       UserRepository userRepository,
++                       CampanhaRepository campanhaRepository) {
++    this.agendamentoRepository = agendamentoRepository;
++    this.descarteRepository = descarteRepository;
++    this.userRepository = userRepository;
++    this.campanhaRepository = campanhaRepository;
++}
+     /**
+      * Aprova um agendamento PENDENTE: cada item vira um descarte, os pontos
+      * (pontuacao_base * quantidade) sao somados ao usuario e o agendamento
+@@ -42,11 +48,19 @@ public class DescarteService {
+ 
+         User usuario = ag.getUsuario();
+         int pontosGanhos = 0;
++        LocalDate hoje = LocalDate.now();
++
++List<Campanha> campanhasAtivas = campanhaRepository
++        .findByDataInicioLessThanEqualAndDataFimGreaterThanEqual(hoje, hoje);
+ 
+         for (AgendamentoItem item : ag.getItens()) {
+             TipoResiduo tipo = item.getTipoResiduo();
+             int qtd = item.getQuantidade() != null ? item.getQuantidade() : 1;
+-            pontosGanhos += tipo.getPontuacaoBase() * qtd;
++            int pontosBase = tipo.getPontuacaoBase() * qtd;
++double multiplicador = obterMaiorMultiplicadorAplicavel(tipo, campanhasAtivas);
++int pontosComCampanha = (int) Math.round(pontosBase * multiplicador);
++
++pontosGanhos += pontosComCampanha;
+ 
+             descarteRepository.save(new Descarte(usuario, tipo, ag));
+         }
+@@ -60,4 +74,25 @@ public class DescarteService {
+ 
+         return usuario.getPontuacaoTotal();
+     }
++    private double obterMaiorMultiplicadorAplicavel(TipoResiduo tipo, List<Campanha> campanhasAtivas) {
++    double maiorMultiplicador = 1.0;
++
++    for (Campanha campanha : campanhasAtivas) {
++        Double multiplicador = campanha.getMultiplicador() != null
++                ? campanha.getMultiplicador()
++                : 1.0;
++
++        boolean campanhaGlobal = campanha.getTipoResiduo() == null;
++
++        boolean campanhaDoTipo =
++                campanha.getTipoResiduo() != null &&
++                campanha.getTipoResiduo().getId().equals(tipo.getId());
++
++        if ((campanhaGlobal || campanhaDoTipo) && multiplicador > maiorMultiplicador) {
++            maiorMultiplicador = multiplicador;
++        }
++    }
++
++    return maiorMultiplicador;
++}
+ }
+-- 
+2.47.0.windows.2
+

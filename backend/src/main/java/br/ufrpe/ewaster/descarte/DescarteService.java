@@ -10,6 +10,10 @@ import br.ufrpe.ewaster.user.UserRepository;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import br.ufrpe.ewaster.campanha.Campanha;
+import br.ufrpe.ewaster.campanha.CampanhaRepository;
+import java.time.LocalDate;
+import java.util.List;
 
 @Service
 public class DescarteService {
@@ -17,15 +21,17 @@ public class DescarteService {
     private final AgendamentoRepository agendamentoRepository;
     private final DescarteRepository descarteRepository;
     private final UserRepository userRepository;
+    private final CampanhaRepository campanhaRepository;
 
     public DescarteService(AgendamentoRepository agendamentoRepository,
-                           DescarteRepository descarteRepository,
-                           UserRepository userRepository) {
-        this.agendamentoRepository = agendamentoRepository;
-        this.descarteRepository = descarteRepository;
-        this.userRepository = userRepository;
-    }
-
+                       DescarteRepository descarteRepository,
+                       UserRepository userRepository,
+                       CampanhaRepository campanhaRepository) {
+    this.agendamentoRepository = agendamentoRepository;
+    this.descarteRepository = descarteRepository;
+    this.userRepository = userRepository;
+    this.campanhaRepository = campanhaRepository;
+}
     /**
      * Aprova um agendamento PENDENTE: cada item vira um descarte, os pontos
      * (pontuacao_base * quantidade) sao somados ao usuario e o agendamento
@@ -42,11 +48,19 @@ public class DescarteService {
 
         User usuario = ag.getUsuario();
         int pontosGanhos = 0;
+        LocalDate hoje = LocalDate.now();
+
+List<Campanha> campanhasAtivas = campanhaRepository
+        .findByDataInicioLessThanEqualAndDataFimGreaterThanEqual(hoje, hoje);
 
         for (AgendamentoItem item : ag.getItens()) {
             TipoResiduo tipo = item.getTipoResiduo();
             int qtd = item.getQuantidade() != null ? item.getQuantidade() : 1;
-            pontosGanhos += tipo.getPontuacaoBase() * qtd;
+            int pontosBase = tipo.getPontuacaoBase() * qtd;
+double multiplicador = obterMaiorMultiplicadorAplicavel(tipo, campanhasAtivas);
+int pontosComCampanha = (int) Math.round(pontosBase * multiplicador);
+
+pontosGanhos += pontosComCampanha;
 
             descarteRepository.save(new Descarte(usuario, tipo, ag));
         }
@@ -60,4 +74,25 @@ public class DescarteService {
 
         return usuario.getPontuacaoTotal();
     }
+    private double obterMaiorMultiplicadorAplicavel(TipoResiduo tipo, List<Campanha> campanhasAtivas) {
+    double maiorMultiplicador = 1.0;
+
+    for (Campanha campanha : campanhasAtivas) {
+        Double multiplicador = campanha.getMultiplicador() != null
+                ? campanha.getMultiplicador()
+                : 1.0;
+
+        boolean campanhaGlobal = campanha.getTipoResiduo() == null;
+
+        boolean campanhaDoTipo =
+                campanha.getTipoResiduo() != null &&
+                campanha.getTipoResiduo().getId().equals(tipo.getId());
+
+        if ((campanhaGlobal || campanhaDoTipo) && multiplicador > maiorMultiplicador) {
+            maiorMultiplicador = multiplicador;
+        }
+    }
+
+    return maiorMultiplicador;
+}
 }
