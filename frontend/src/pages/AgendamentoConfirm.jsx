@@ -19,6 +19,7 @@ export default function AgendamentoConfirm({ slot, onBack, onConfirm }) {
   const [tiposResiduos, setTiposResiduos] = useState([]);
   const [quantidades, setQuantidades] = useState({});
   const [carregando, setCarregando] = useState(true);
+  const [campanhas, setCampanhas] = useState([]);
 
   // 1. Carrega os tipos de resíduos do Banco de Dados
   useEffect(() => {
@@ -37,6 +38,36 @@ export default function AgendamentoConfirm({ slot, onBack, onConfirm }) {
     buscarTiposResiduos();
   }, []);
 
+  // 1b. Carrega as campanhas para avisar se este descarte ganha bônus.
+  useEffect(() => {
+    const buscarCampanhas = async () => {
+      try {
+        const dados = await api.get("/campanhas");
+        setCampanhas(Array.isArray(dados) ? dados : []);
+      } catch (error) {
+        console.error("Erro ao buscar campanhas:", error);
+        setCampanhas([]);
+      }
+    };
+    buscarCampanhas();
+  }, []);
+
+  // Campanhas vigentes na DATA DO SLOT (mesma regra do backend: bônus sai pela
+  // data em que o descarte acontece, não pela data de hoje).
+  const campanhasNaData = campanhas.filter(
+    (c) => slot?.data && c.dataInicio <= slot.data && slot.data <= c.dataFim
+  );
+
+  // Melhor multiplicador para um tipo: campanha sem tipo vale para todos;
+  // com tipo definido, só para aquele. Sem campanha aplicável, 1x.
+  const multiplicadorPara = (tipoId) =>
+    campanhasNaData
+      .filter((c) => c.tipoResiduoId == null || c.tipoResiduoId === tipoId)
+      .reduce((max, c) => Math.max(max, c.multiplicador || 1), 1);
+
+  // Texto amigável do multiplicador (1.5x e não 1.5000000x).
+  const formatarMult = (m) => `${Number(m).toLocaleString("pt-BR")}x`;
+
   // 2. Funções para Alterar a Quantidade Selecionada
   const alterarQuantidade = (id, mudanca) => {
     setQuantidades((prev) => {
@@ -54,11 +85,21 @@ export default function AgendamentoConfirm({ slot, onBack, onConfirm }) {
       quantidade: quantidades[item.id],
     }));
 
-  // 4. Calcula o total geral usando o 'pontuacaoBase' do Java
-  const totalPontosGeral = itensSelecionados.reduce((acc, item) => {
-    const pontosUnitarios = item.pontuacaoBase || 0;
-    return acc + pontosUnitarios * item.quantidade;
-  }, 0);
+  // Pontos de um item já com o bônus de campanha aplicado (arredondado, igual ao backend).
+  const pontosBaseItem = (item) => (item.pontuacaoBase || 0) * item.quantidade;
+  const pontosComBonusItem = (item) =>
+    Math.round(pontosBaseItem(item) * multiplicadorPara(item.id));
+
+  // 4. Total geral já considerando o multiplicador da campanha vigente.
+  const totalPontosBase = itensSelecionados.reduce(
+    (acc, item) => acc + pontosBaseItem(item),
+    0
+  );
+  const totalPontosGeral = itensSelecionados.reduce(
+    (acc, item) => acc + pontosComBonusItem(item),
+    0
+  );
+  const temBonus = totalPontosGeral > totalPontosBase;
 
   const handleFinalizar = () => {
     if (itensSelecionados.length === 0) {
@@ -94,11 +135,41 @@ export default function AgendamentoConfirm({ slot, onBack, onConfirm }) {
           Selecione ao menos um item. Os pontos são calculados automaticamente.
         </p>
 
+        {/* AVISO DE CAMPANHA: este descarte cai no período de uma campanha */}
+        {campanhasNaData.map((campanha) => (
+          <div
+            key={campanha.id}
+            style={{
+              display: "flex",
+              gap: 10,
+              alignItems: "flex-start",
+              background: COLORS.greenBg,
+              border: `1px solid ${COLORS.green}`,
+              borderRadius: 12,
+              padding: "12px 16px",
+              marginBottom: 12,
+            }}
+          >
+            <span style={{ fontSize: 18, lineHeight: "20px" }}>🎉</span>
+            <div style={{ fontSize: 13, color: COLORS.text, lineHeight: 1.5 }}>
+              Este descarte cai na campanha{" "}
+              <strong>{campanha.nome}</strong> — bônus de{" "}
+              <strong>{formatarMult(campanha.multiplicador || 1)}</strong> nos pontos
+              {campanha.tipoResiduoId == null ? (
+                <> de <strong>todos os materiais</strong>.</>
+              ) : (
+                <> para <strong>{campanha.tipoResiduoNome}</strong>.</>
+              )}
+            </div>
+          </div>
+        ))}
+
         {/* GRID DOS CARDS */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 16 }}>
           {tiposResiduos.map((item) => {
             const qtd = quantidades[item.id] || 0;
             const pontosUnitarios = item.pontuacaoBase || 0;
+            const mult = multiplicadorPara(item.id);
 
             return (
               <div
@@ -125,9 +196,24 @@ export default function AgendamentoConfirm({ slot, onBack, onConfirm }) {
                     </span>
                     <strong style={{ fontSize: 15, color: COLORS.text }}>{item.nome}</strong>
                   </div>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "#e67e22" }}>
-                    +{pontosUnitarios} pts
-                  </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#e67e22" }}>
+                      +{mult > 1 ? Math.round(pontosUnitarios * mult) : pontosUnitarios} pts
+                    </span>
+                    {mult > 1 && (
+                      <>
+                        <span style={{ fontSize: 11, color: COLORS.textSec, textDecoration: "line-through" }}>
+                          {pontosUnitarios}
+                        </span>
+                        <span style={{
+                          fontSize: 10, fontWeight: 800, color: COLORS.green,
+                          background: COLORS.greenBg, padding: "2px 6px", borderRadius: 6,
+                        }}>
+                          {formatarMult(mult)} campanha
+                        </span>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {/* CONTROLES ADICIONAR / REMOVER */}
@@ -187,7 +273,7 @@ export default function AgendamentoConfirm({ slot, onBack, onConfirm }) {
                 >
                   <span>{item.quantidade}x {item.nome}</span>
                   <span style={{ fontWeight: 600 }}>
-                    +{(item.pontuacaoBase || 0) * item.quantidade} pts
+                    +{pontosComBonusItem(item)} pts
                   </span>
                 </div>
               ))}
@@ -195,12 +281,28 @@ export default function AgendamentoConfirm({ slot, onBack, onConfirm }) {
 
             <hr style={{ border: "none", borderTop: "1px solid #e5e7eb", marginBottom: 16 }} />
 
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+            {temBonus && (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, fontSize: 13, color: COLORS.textSec }}>
+                <span>Sem campanha:</span>
+                <span style={{ textDecoration: "line-through" }}>{totalPontosBase} pts</span>
+              </div>
+            )}
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: temBonus ? 8 : 24 }}>
               <span style={{ fontWeight: 600, color: COLORS.text }}>Total acumulado:</span>
               <span style={{ fontSize: 22, fontWeight: 800, color: COLORS.green }}>
                 {totalPontosGeral} pts
               </span>
             </div>
+
+            {temBonus && (
+              <div style={{
+                fontSize: 12, fontWeight: 700, color: COLORS.green, background: COLORS.greenBg,
+                borderRadius: 8, padding: "8px 10px", textAlign: "center", marginBottom: 24,
+              }}>
+                🎉 +{totalPontosGeral - totalPontosBase} pts de bônus de campanha!
+              </div>
+            )}
           </div>
         )}
 

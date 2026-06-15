@@ -996,6 +996,29 @@ const excluirCampanha = async (id) => {
       </option>
     ))}
   </select>
+
+  {Number(novaCampanha.multiplicador) > 1 && (
+    <Typography
+      sx={{
+        marginTop: "8px",
+        fontSize: "0.82rem",
+        color: "#A5D6A7",
+        fontWeight: 600,
+        lineHeight: 1.5,
+      }}
+    >
+      {novaCampanha.tipoResiduoId === ""
+        ? `💡 Todos os descartes feitos durante esta campanha receberão bônus de ${Number(
+            novaCampanha.multiplicador
+          ).toLocaleString("pt-BR")}x nos pontos.`
+        : `💡 Descartes de "${
+            tiposResiduo.find((t) => t.id === novaCampanha.tipoResiduoId)?.nome ||
+            "este resíduo"
+          }" receberão bônus de ${Number(
+            novaCampanha.multiplicador
+          ).toLocaleString("pt-BR")}x nos pontos.`}
+    </Typography>
+  )}
 </Box>
 </Box>
 

@@ -59,6 +59,25 @@ function CampanhasPage({ token }) {
         <div style={{ fontSize: 13, color: COLORS.textSec, marginTop: 4 }}>
           {formatarData(campanha.dataInicio)} até {formatarData(campanha.dataFim)}
         </div>
+        {campanha.multiplicador > 1 && (
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              marginTop: 8,
+              fontSize: 12,
+              fontWeight: 700,
+              color: COLORS.green,
+              background: COLORS.greenBg,
+              padding: "4px 10px",
+              borderRadius: 8,
+            }}
+          >
+            🎁 {Number(campanha.multiplicador).toLocaleString("pt-BR")}x em{" "}
+            {campanha.tipoResiduoNome || "todos os materiais"}
+          </div>
+        )}
       </div>
 
       <div

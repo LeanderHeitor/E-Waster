@@ -12,6 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,12 +38,28 @@ class SlotColetaControllerTest {
     }
 
     @Test
-    void listar_devolveSlotsDoSeedComVagasDerivadas() {
+    void listar_devolveSlotsComVagasDerivadasDentroDoLimite() {
+        // Cria um slot conhecido (rollback automatico) em vez de cravar a contagem do
+        // seed: a quantidade de slots cresce conforme o admin cadastra horarios, entao
+        // assertar "exatamente 6" quebraria com o tempo. Aqui validamos a regra que
+        // realmente importa: a derivacao de vagas.
+        SlotColeta novo = new SlotColeta();
+        novo.setData(LocalDate.now().plusYears(5));
+        novo.setHorarioInicio(LocalTime.of(8, 0));
+        novo.setHorarioFim(LocalTime.of(12, 0));
+        novo.setCapacidadeMaxima(7);
+        novo.setAtivo(true);
+        Integer novoId = slotRepository.save(novo).getId();
+
         List<SlotResponseDTO> slots = listar();
 
-        assertEquals(6, slots.size(), "seed deve ter 6 slots ativos");
+        // O slot recem-criado aparece na listagem; sem agendamentos, todas as vagas livres.
+        SlotResponseDTO criado = slot(slots, novoId);
+        assertEquals(7, criado.capacidadeMaxima());
+        assertEquals(7L, criado.vagasDisponiveis(), "slot novo sem agendamentos: vagas = capacidade");
+
+        // Invariante geral: vagas derivadas sempre dentro de [0, capacidade] em qualquer slot.
         for (SlotResponseDTO s : slots) {
-            assertEquals(5, s.capacidadeMaxima());
             assertTrue(s.vagasDisponiveis() >= 0 && s.vagasDisponiveis() <= s.capacidadeMaxima(),
                     "vagas fora do intervalo no slot " + s.id());
         }
