@@ -72,6 +72,9 @@ public class DescarteService {
         usuario.setPontuacaoTotal(atual + pontosGanhos);
         userRepository.save(usuario);
 
+        // Congela os pontos concedidos (já com multiplicador) para todas as telas
+        // exibirem o mesmo valor final e para conseguirmos estorná-los num cancelamento.
+        ag.setTotalPontos(pontosGanhos);
         ag.setStatus(StatusAgendamento.REALIZADO);
         agendamentoRepository.save(ag);
 

@@ -87,6 +87,16 @@ public class AgendamentoService {
             throw new RuntimeException("Você não tem permissão para cancelar este agendamento.");
         }
 
+        // Se já estava aprovado, estorna os pontos concedidos para que o cancelado
+        // não continue contando no ranking (pontuacaoTotal é acumulador).
+        if (agendamento.getStatus() == StatusAgendamento.REALIZADO
+                && agendamento.getTotalPontos() != null) {
+            User dono = agendamento.getUsuario();
+            int atual = dono.getPontuacaoTotal() != null ? dono.getPontuacaoTotal() : 0;
+            dono.setPontuacaoTotal(Math.max(0, atual - agendamento.getTotalPontos()));
+            userRepository.save(dono);
+        }
+
         agendamento.setStatus(StatusAgendamento.CANCELADO);
         agendamentoRepository.save(agendamento);
     }

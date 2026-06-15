@@ -154,6 +154,60 @@ class DescarteServiceTest {
     }
 
     @Test
+    void aprovar_congelaPontosGanhos_comMultiplicador() {
+        int qtd = 2;
+        int base = primeiroTipo().getPontuacaoBase();
+
+        Campanha campanha = new Campanha(
+                "Mutirão E-lixo",
+                DATA_FUTURA.minusDays(1),
+                DATA_FUTURA.plusDays(1),
+                2.0);
+        campanhaRepository.save(campanha);
+
+        Agendamento ag = criarPendente("congela@teste.dev", qtd);
+        descarteService.aprovarAgendamento(ag.getId());
+
+        // Os pontos finais (com multiplicador) ficam congelados no agendamento —
+        // mesma fonte que o ranking e a tela "Meus Agendamentos" exibem.
+        assertEquals(base * qtd * 2,
+                agendamentoRepository.findById(ag.getId()).orElseThrow().getTotalPontos());
+    }
+
+    @Test
+    void cancelarRealizado_estornaPontosDoRanking() {
+        int qtd = 2;
+        int base = primeiroTipo().getPontuacaoBase();
+        String email = "estorno@teste.dev";
+
+        Campanha campanha = new Campanha(
+                "Mutirão E-lixo",
+                DATA_FUTURA.minusDays(1),
+                DATA_FUTURA.plusDays(1),
+                2.0);
+        campanhaRepository.save(campanha);
+
+        int antes = userRepository.findByEmail(email).map(User::getPontuacaoTotal).orElse(0);
+
+        Agendamento ag = criarPendente(email, qtd);
+        descarteService.aprovarAgendamento(ag.getId());
+
+        assertEquals(antes + base * qtd * 2,
+                userRepository.findByEmail(email).orElseThrow().getPontuacaoTotal(),
+                "aprovar soma os pontos (com multiplicador) ao total do usuário");
+
+        // Cancelar um agendamento já aprovado precisa estornar os pontos: o cancelado
+        // não pode continuar contando no ranking (era o bug relatado).
+        agendamentoService.cancelarAgendamento(ag.getId(), email);
+
+        assertEquals(antes,
+                userRepository.findByEmail(email).orElseThrow().getPontuacaoTotal(),
+                "cancelar um aprovado devolve a pontuação ao valor anterior");
+        assertEquals(StatusAgendamento.CANCELADO,
+                agendamentoRepository.findById(ag.getId()).orElseThrow().getStatus());
+    }
+
+    @Test
     void aprovar_naoPendente_lancaErro() {
         Agendamento ag = criarPendente("dupla@teste.dev", 1);
         descarteService.aprovarAgendamento(ag.getId()); // vira REALIZADO

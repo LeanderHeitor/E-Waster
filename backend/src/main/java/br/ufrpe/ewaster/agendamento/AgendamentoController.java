@@ -83,9 +83,12 @@ public class AgendamentoController {
 
     // Converte a entidade no DTO de resposta (evita expor dados sensiveis do usuario).
     private AgendamentoResponse toResponse(Agendamento a) {
-        int totalPts = a.getItens().stream()
+        // Aprovado: usa os pontos congelados (já com multiplicador de campanha), a mesma
+        // fonte do ranking. Pendente/cancelado: mostra só a estimativa base * quantidade.
+        int estimativaBase = a.getItens().stream()
                 .mapToInt(item -> item.getTipoResiduo().getPontuacaoBase() * item.getQuantidade())
                 .sum();
+        int totalPts = a.getTotalPontos() != null ? a.getTotalPontos() : estimativaBase;
 
         var slotDTO = new AgendamentoResponse.SlotDTO(
                 a.getSlot().getId(),

@@ -24,6 +24,12 @@ public class Agendamento {
     @Column(nullable = false, length = 20)
     private StatusAgendamento status;
 
+    // Pontos congelados na aprovação (base * quantidade * multiplicador da campanha).
+    // Fonte única da pontuação final exibida no ranking, na home e em "Meus Agendamentos".
+    // Nulo enquanto o agendamento não foi aprovado (PENDENTE/CANCELADO/NAO_COMPARECEU).
+    @Column(name = "total_pontos")
+    private Integer totalPontos;
+
     @OneToMany(mappedBy = "agendamento", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AgendamentoItem> itens = new java.util.ArrayList<>();
 
@@ -64,5 +70,13 @@ public class Agendamento {
 
     public void setStatus(StatusAgendamento status) {
         this.status = status;
+    }
+
+    public Integer getTotalPontos() {
+        return totalPontos;
+    }
+
+    public void setTotalPontos(Integer totalPontos) {
+        this.totalPontos = totalPontos;
     }
 }
