@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import PageHeader from "../components/PageHeader";
 import { COLORS } from "../styles/colors";
+import { API_BASE_URL } from "../api/config";
 
 function PerfilPage({ token }) {
   const [nome, setNome] = useState("");
@@ -13,7 +14,7 @@ function PerfilPage({ token }) {
   useEffect(() => {
     async function carregarPerfil() {
       try {
-        const res = await fetch("http://localhost:8081/api/v1/usuarios/me", {
+        const res = await fetch(`${API_BASE_URL}/usuarios/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -47,7 +48,7 @@ function PerfilPage({ token }) {
         body.senha = senha;
       }
 
-      const res = await fetch("http://localhost:8081/api/v1/usuarios/me", {
+      const res = await fetch(`${API_BASE_URL}/usuarios/me`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

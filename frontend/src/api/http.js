@@ -1,6 +1,5 @@
 import axios from "axios";
-
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8081/api/v1";
+import { API_BASE_URL } from "./config";
 
 export const TOKEN_STORAGE_KEY = "ewaster_token";
 

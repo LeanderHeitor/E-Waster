@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import PageHeader from "../components/PageHeader";
 import { COLORS } from "../styles/colors";
+import { API_BASE_URL } from "../api/config";
 
 function CampanhasPage({ token }) {
   const [campanhas, setCampanhas] = useState([]);
@@ -10,7 +11,7 @@ function CampanhasPage({ token }) {
   useEffect(() => {
     async function carregarCampanhas() {
       try {
-        const res = await fetch("http://localhost:8081/api/v1/campanhas", {
+        const res = await fetch(`${API_BASE_URL}/campanhas`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import PageHeader from "../components/PageHeader";
 import { COLORS } from "../styles/colors";
+import { API_BASE_URL } from "../api/config";
 
 // Recebe o token e o usuário diretamente via props do App.jsx
 function RankingPage({ usuario, token }) {
@@ -20,7 +21,7 @@ function RankingPage({ usuario, token }) {
           return;
         }
 
-        const response = await fetch("http://localhost:8081/api/v1/usuarios/ranking", {
+        const response = await fetch(`${API_BASE_URL}/usuarios/ranking`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",

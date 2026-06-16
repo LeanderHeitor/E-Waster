@@ -1,0 +1,7 @@
+target
+run.log
+*.log
+.git
+.gitignore
+.idea
+*.iml

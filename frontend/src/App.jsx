@@ -16,6 +16,7 @@ import PerfilPage from "./pages/PerfilPage";
 import Toast from "./components/Toast";
 import { useAuth } from "./context/AuthContext";
 import CampanhasPage from "./pages/CampanhasPage";
+import { API_BASE_URL } from "./api/config";
 
 // Extrai a mensagem amigável de uma resposta de erro do backend.
 // O backend manda JSON { message: "..." }; cai para texto puro ou um fallback.
@@ -71,7 +72,7 @@ export default function App() {
 
       // AGENDAMENTOS
       const resAgendamentos = await fetch(
-        "http://localhost:8081/api/v1/agendamentos/me",
+        `${API_BASE_URL}/agendamentos/me`,
         { method: "GET", headers }
       );
 
@@ -83,7 +84,7 @@ export default function App() {
 
       // SLOTS
       const resSlots = await fetch(
-        "http://localhost:8081/api/v1/slots",
+        `${API_BASE_URL}/slots`,
         { method: "GET", headers }
       );
 
@@ -162,7 +163,7 @@ const totalAgendamentosAtivos = agendamentosAtivos.length;
         };
 
         const response = await fetch(
-          "http://localhost:8081/api/v1/agendamentos",
+          `${API_BASE_URL}/agendamentos`,
           {
             method: "POST",
             headers: {
@@ -203,7 +204,7 @@ const totalAgendamentosAtivos = agendamentosAtivos.length;
         if (!token) throw new Error("Token de autenticação ausente.");
 
         const response = await fetch(
-          `http://localhost:8081/api/v1/agendamentos/${id}`,
+          `${API_BASE_URL}/agendamentos/${id}`,
           {
             method: "DELETE",
             headers: {
