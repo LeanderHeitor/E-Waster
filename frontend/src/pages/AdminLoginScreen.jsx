@@ -265,7 +265,7 @@ export default function AdminLoginScreen({ onIrLogin, onIrLanding }) {
               }}
             >
               <Typography sx={{ fontSize: "0.75rem", color: "#166534" }}>
-                Conta admin teste: <span style={{ fontFamily: "monospace" }}>admin@ewaster.com / admin123</span>
+                Conta admin teste: <span style={{ fontFamily: "monospace" }}>admin@ewaster.com / 123456</span>
               </Typography>
             </Box>
           </form>
